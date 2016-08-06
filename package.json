@@ -8,9 +8,11 @@
     "dev": "gulp dev"
   },
   "author": "Erich Healy",
-  "license": "MPLv2",
+  "license": "MPL-2.0",
   "devDependencies": {
     "@types/electron": "^1.3.15",
+    "@types/react": "^0.14.28",
+    "@types/react-dom": "^0.14.14",
     "del": "^2.2.1",
     "eslint": "^3.2.2",
     "gulp": "^3.9.1",
@@ -21,6 +23,10 @@
     "typescript": "^2.1.0-dev.20160806"
   },
   "dependencies": {
-    "electron-prebuilt": "^1.3.2"
+    "electron-prebuilt": "^1.3.2",
+    "mobx": "^2.4.2",
+    "mobx-react": "^3.5.4",
+    "react": "^15.3.0",
+    "react-dom": "^15.3.0"
   }
 }
