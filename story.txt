@@ -1,0 +1,10 @@
+* Needs to open 3 kinds of files.  Single images, folders, archive
+* archive: zip rar cbr cbz
+* Would be nice to open .tar.xz
+* Image formats: jpg png gif
+* On encountering non-image, display bad image error
+
+* Display images on the screen.  Scale the image such that it fits within the window
+* simple solution: an <image> tag
+
+* Navigate forward and backward in the current archive using left and right keys
