@@ -6,13 +6,15 @@ const runElectron = require("gulp-run-electron");
 
 gulp.task("default", ["launch"]);
 gulp.task("dev", ["clean"], () => gulp.run(["watch", "launch"]));
+gulp.task("package", ["clean"], () => gulp.run(["static", "compile"]));
 
 const PATHS = {
   static: [
     "package.json",
     "index.html",
+    "main.js",
   ],
-  project: "src/tsconfig.json",
+  project: "tsconfig.json",
   src: "src/**/*",
   build: "build",
 };

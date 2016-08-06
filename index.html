@@ -5,16 +5,11 @@
     <title>Hello World!</title>
   </head>
   <body>
-    <div id="root" />
-    <!-- All of the Node.js APIs are available in this renderer process. -->
-    <!--<h1>Hello World!</h1>
-    We are using node <script>document.write(process.versions.node)</script>,
-    Chromium <script>document.write(process.versions.chrome)</script>,
-    and Electron <script>document.write(process.versions.electron)</script>.-->
+    <div id="root">Content not loaded</div>
   </body>
 
-  <script>
+   <script>
     // You can also require other files to run in this process
-    require('./bootstrap.js')
+    require('./bootstrap.js').default()
   </script>
 </html>

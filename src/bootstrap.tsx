@@ -1,21 +1,24 @@
-/// <reference path="react.d.ts" />
-/// <reference path="react-jsx.d.ts" />
+import * as React from "react";
+import * as ReactDOM from "react-dom";
 
-import React, {Component} from "react";
-import {render} from "react-dom";
-
-class Application extends Component<{}, {}> {
+class Application extends React.Component<{}, {}> {
   render() {
     return (
       <div>
         <h1>Hello World</h1>
         <div>We are using node {process.versions.node}</div>
+        <div>Chrome {process.versions.chrome}</div>
+        <div>and Electron {process.versions.electron}</div>
       </div>
-    )
+    );
   }
 }
 
-render(
-  <Application />,
-  document.getElementById("root")
-);
+export default function init() {
+  document.addEventListener("DOMContentLoaded", () => {
+    ReactDOM.render(
+      <Application />,
+      document.getElementById("root")
+    );
+  });
+}
