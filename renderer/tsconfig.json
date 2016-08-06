@@ -9,6 +9,9 @@
         "listFiles": true,
         "pretty": true,
         "noImplicitAny": true,
+        "typeRoots": [
+            ".."
+        ],
         "sourceMap": true
     },
 

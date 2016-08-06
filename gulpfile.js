@@ -14,7 +14,8 @@ const PATHS = {
     "index.html",
     "main.js",
   ],
-  project: "tsconfig.json",
+  renderProject: "renderer/tsconfig.json",
+  mainProject: "main/tsconfig.json",
   src: "src/**/*",
   build: "build",
 };
@@ -33,17 +34,22 @@ gulp.task("watch", ["static", "compile"], () => {
   gulp.watch(PATHS.src, ["compile"]);
 });
 
-const tsProject = ts.createProject(PATHS.project, {
-  // Required because we're using pre-release versions of typescript here
-  typescript: require("typescript"),
-});
+const renderProject = ts.createProject(PATHS.renderProject);
+const mainProject = ts.createProject(PATHS.mainProject);
+
+function compilePipeline(project) {
+  return project.src()
+    .pipe(sourcemaps.init())
+    .pipe(ts(project)).js
+    .pipe(sourcemaps.write())
+    .pipe(gulp.dest(PATHS.build));
+}
 
 gulp.task("compile", () => {
-  return tsProject.src()
-  .pipe(sourcemaps.init())
-  .pipe(ts(tsProject)).js
-  .pipe(sourcemaps.write())
-  .pipe(gulp.dest(PATHS.build));
+  return [
+    compilePipeline(renderProject),
+    compilePipeline(mainProject),
+  ];
 });
 
 gulp.task("launch", ["static", "compile"], () => {
