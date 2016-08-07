@@ -29,8 +29,7 @@ gulp.task("static", () => {
 
 gulp.task("watch", ["static", "compile"], () => {
   gulp.watch(PATHS.static, ["static"]);
-  gulp.watch("renderer/**/*", ["compile:renderer"]);
-  gulp.watch("main/**/*", ["compile:main"]);
+  gulp.watch("src/**/*", ["compile"]);
 });
 
 const tsOptions = {typescript: require("typescript")};
