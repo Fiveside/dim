@@ -3,7 +3,6 @@ const ts = require("gulp-typescript");
 const del = require("del");
 const sourcemaps = require("gulp-sourcemaps");
 const runElectron = require("gulp-run-electron");
-// const _ = require("lodash");
 
 gulp.task("default", ["launch"]);
 gulp.task("dev", ["clean"], () => gulp.run(["watch", "launch"]));

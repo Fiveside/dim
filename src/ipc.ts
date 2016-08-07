@@ -53,7 +53,6 @@ interface IPCRecieveMessage {
 
 function makeListener(name: string) {
   Electron.ipcRenderer.on(name, (event: Electron.IpcRendererEvent, message: IPCRecieveMessage) => {
-    console.log("Rendering thread recieved ipc", message);
     let map = messages[name];
 
     if (!map.has(message.id)) {
