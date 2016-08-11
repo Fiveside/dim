@@ -1,46 +1,66 @@
 import {observable, computed} from "mobx";
 import * as Files from "../../lib/files";
-import {VirtualFile} from "../../lib/vfs";
+import {VirtualRoot, VirtualFile} from "../../lib/vfs";
 // import {EventEmitter} from "events";
 
 export default class Viewer { // extends EventEmitter {
   @observable isLoaded: boolean = false;
+  // Default to a do-nothing so that methods don't die.
+  @observable pages: VirtualRoot = new VirtualRoot([]);
   @observable archivePath: string = "";
+  @observable pageNumber: number = 0;
 
-  @observable currentPage: number = 0;
-
-  @observable files: Array<VirtualFile> = [];
-
-  @observable sourceUrl: string = "";
+  @computed get pageTotal(): number {
+    return this.pages.length;
+  }
 
   // Resolves when the load has completed.
   async load(archivePath: string) {
+    if (this.isLoaded) {
+      this.unload();
+    }
     this.archivePath = archivePath;
-    this.files = await Files.readZip(archivePath[0]);
+    this.pages = await Files.readZip(archivePath);
+    this.setPage(0);
     this.isLoaded = true;
-    this.sourceUrl = await this.files[0].getSourceUrl();
+    this.currentPage.load();
   }
 
   unload() {
     this.archivePath = "";
+    this.pages.unload();
     this.isLoaded = false;
-    this.files = [];
+    this.pageNumber = 0;
   }
 
-  // @computed
-  // get sourceUrl(): string {
-  //   return this.files[0].getSourceUrl();
-  // }
+  @computed get currentPage(): VirtualFile {
+    return this.pages.children[this.pageNumber];
+  }
 
-  // getCurrentPage(): File {
-  //   return this.files
-  // }
+  async _setPage(pageNum: number): Promise<any> {
+    let current = this.currentPage;
+    let page = this.pages.children[pageNum];
+    if (current !== page) {
+      await page.load();
+    }
+    this.pageNumber = pageNum;
+    current.unload();
+  }
 
-  // nextPage(): boolean {
-  //   return true;
-  // }
+  setPage(pageNum: number): boolean {
+    // Assert that we can first.
+    if (this.pages.length <= pageNum || pageNum < 0) {
+      return false;
+    }
+    this._setPage(pageNum);
+    return true;
+  }
 
-  // previousPage(): boolean {
-  //   return false;
-  // }
+  nextPage(): boolean {
+    return this.setPage(this.pageNumber + 1);
+  }
+
+  previousPage(): boolean {
+    return this.setPage(this.pageNumber - 1);
+  }
 }

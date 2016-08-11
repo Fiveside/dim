@@ -8,17 +8,11 @@ interface IViewportProps {
 
 @observer
 export default class Viewport extends React.Component<IViewportProps, {}> {
-  // static propTypes = {
-  //   viewer: propTypes.objectOrObservableObject.isRequired,
-  // };
-
   render() {
-    // let img = new Image();
-    // img.src = this.props.viewer.sourceUrl;
+    console.log("Rendering", this.props.viewer.currentPage.sourceUrl);
     return (
       <div>
-        This is the main viewer
-        <img src={this.props.viewer.sourceUrl} />
+        <img src={this.props.viewer.currentPage.sourceUrl} />
       </div>
     );
   }
