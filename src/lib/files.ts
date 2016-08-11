@@ -1,11 +1,40 @@
 import * as yauzl from "yauzl";
-import {DuVinylFile} from "./vfs";
+import {VirtualFile, ZippedVirtualFile} from "./vfs";
+import * as Bluebird from "bluebird";
 
-export function readZip(path: string) {
-  return [new DuVinylFile({
-    cwd: "/",
-    base: "/",
-    path: "/foo.gif",
-    contents: new Buffer("R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAI=", "base64"),
-  })];
+
+export async function readZip(path: string) {
+  let zipfile: yauzl.ZipFile;
+  try {
+    console.log(path);
+    zipfile = await Bluebird.fromCallback(cb => yauzl.open(path, {autoClose: false}, cb));
+  } catch (err) {
+    console.error(err);
+    throw err;
+  }
+
+  let entries: yauzl.Entry[] = [];
+
+  zipfile.on("entry", (entry: yauzl.Entry) => {
+    entries.push(entry);
+  });
+
+  // Wait for all entries to be found
+  await new Promise(resolve => {
+    zipfile.on("end", resolve);
+  });
+
+  return entries
+    .filter(e => e.uncompressedSize)
+    .map((entry) =>
+    new ZippedVirtualFile({
+      entry: entry,
+      zipFile: zipfile,
+      vinylProps: {
+        cwd: "/",
+        base: "/",
+        path: entry.fileName,
+      },
+    })
+  );
 }

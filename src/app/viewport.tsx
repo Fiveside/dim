@@ -1,24 +1,24 @@
 import * as React from "react";
-import {propTypes, observer} from "mobx-react";
+import {observer} from "mobx-react";
 import Viewer from "./models/viewer";
 
-interface MainViewerProps {
+interface IViewportProps {
   viewer: Viewer;
 }
 
 @observer
-export default class MainViewer extends React.Component<MainViewerProps, {}> {
+export default class Viewport extends React.Component<IViewportProps, {}> {
   // static propTypes = {
   //   viewer: propTypes.objectOrObservableObject.isRequired,
   // };
 
   render() {
-    let img = new Image();
-    img.src = this.props.viewer.getSourceUrl();
+    // let img = new Image();
+    // img.src = this.props.viewer.sourceUrl;
     return (
       <div>
         This is the main viewer
-        {img}
+        <img src={this.props.viewer.sourceUrl} />
       </div>
     );
   }

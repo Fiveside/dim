@@ -3,18 +3,17 @@ import * as Electron from "electron";
 import IPC from "../ipc";
 import {autobind} from "core-decorators";
 import ViewerModel from "./models/viewer";
-import Viewer from "./viewer";
-// import * as Mobx from "mobx";
+import Viewport from "./viewport";
+import {observer} from "mobx-react";
 
-interface ApplicationState {
-  folder?: string;
+interface IApplicationState {
   viewer: ViewerModel;
 }
 
-export default class Application extends React.Component<{}, {}> {
+@observer
+export default class Application extends React.Component<any, IApplicationState> {
 
-  state: ApplicationState = {
-    folder: null,
+  state: IApplicationState = {
     viewer: new ViewerModel(),
   };
 
@@ -22,24 +21,28 @@ export default class Application extends React.Component<{}, {}> {
   async handleButtonClick(event: React.MouseEvent) {
     console.log("Clicked the button.");
     try {
-      this.setState({
-        folder: await IPC.launchBrowser(),
-      });
+      let folder = await IPC.launchBrowser();
+      this.state.viewer.load(folder);
+      // await this.state.viewer.load("someshit");
+      // this.setState({
+      //   folder: await IPC.launchBrowser(),
+      // });
     } catch (err) {
       console.log("No file chosen");
-      this.setState({folder: null});
+      // this.setState({folder: null});
     }
   }
 
   render() {
     let btn = <button onClick={this.handleButtonClick}>Select Folder</button>;
-    if (this.state.folder == null) {
+    console.log("Rendering", this.state.viewer.isLoaded);
+    if (!this.state.viewer.isLoaded) {
       return btn;
     }
     return (
       <div>
-        You chose folder {this.state.folder}
-        <Viewer viewer={this.state.viewer} />
+        You chose folder {this.state.viewer.archivePath}
+        <Viewport viewer={this.state.viewer} />
         {btn}
       </div>
     );
