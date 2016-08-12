@@ -20,7 +20,7 @@ class LaunchFileBrowser implements IPCHandler {
         properties: ["openFile"],
       }, (file) => {
         if (file == null) {
-          reject();
+          reject(undefined);
         } else {
           resolve(file);
         }
