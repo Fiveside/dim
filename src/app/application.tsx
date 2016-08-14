@@ -44,7 +44,9 @@ export default class Application extends React.Component<any, IApplicationState>
         {this.state.viewer.archivePath}
         {btn}
         <button onClick={this.handleUnload}>Unload</button>
-        <Viewport viewer={this.state.viewer} />
+        <div>
+          <Viewport viewer={this.state.viewer} />
+        </div>
       </div>
     );
   }

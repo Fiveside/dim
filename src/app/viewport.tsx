@@ -36,7 +36,7 @@ export default class Viewport extends React.Component<IViewportProps, {}> {
     return (
       <div>
         <div>
-          <img src={this.props.viewer.currentPage.sourceUrl} />
+          <img className="fill-container" src={this.props.viewer.currentPage.sourceUrl} />
         </div>
         <span> Page {this.props.viewer.pageNumber} of {this.props.viewer.pageTotal}</span>
         <button onClick={this.handleNextClick}>Next Page</button>

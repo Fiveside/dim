@@ -12,6 +12,7 @@ const PATHS = {
   static: [
     "package.json",
     "index.html",
+    "app.css",
   ],
   project: "tsconfig.json",
   build: "build",

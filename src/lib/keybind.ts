@@ -42,7 +42,7 @@ class HotkeyManager {
     for (let name of names) {
       let fullName = `${context}.${name}`;
       if (KEYBINDS[fullName] == null) {
-        throw new TypeError(`Cannot register keybinding ${name}, no matching sequence exists.`)
+        throw new TypeError(`Cannot register keybinding ${name}, no matching sequence exists.`);
       }
 
       let callback = activators[name];
