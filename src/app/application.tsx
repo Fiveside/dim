@@ -19,7 +19,6 @@ export default class Application extends React.Component<any, IApplicationState>
 
   @autobind
   async handleLoad(event: React.MouseEvent) {
-    console.log("Clicked the button.");
     try {
       let folders = await IPC.launchBrowser();
       console.log(folders);
@@ -35,16 +34,6 @@ export default class Application extends React.Component<any, IApplicationState>
     this.state.viewer.unload();
   }
 
-  @autobind
-  async handleNextClick(event: React.MouseEvent) {
-    this.state.viewer.nextPage();
-  }
-
-  @autobind
-  async handlePrevClick(event: React.MouseEvent) {
-    this.state.viewer.previousPage();
-  }
-
   render() {
     let btn = <button onClick={this.handleLoad}>Select Folder</button>;
     if (!this.state.viewer.isLoaded) {
@@ -53,12 +42,9 @@ export default class Application extends React.Component<any, IApplicationState>
     return (
       <div>
         {this.state.viewer.archivePath}
-        <Viewport viewer={this.state.viewer} />
         {btn}
-        <button onClick={this.handleUnload}>Unload </button>
-        <span> Page {this.state.viewer.pageNumber} of {this.state.viewer.pageTotal}</span>
-        <button onClick={this.handleNextClick}>Next Page</button>
-        <button onClick={this.handlePrevClick}>Previous Page</button>
+        <button onClick={this.handleUnload}>Unload</button>
+        <Viewport viewer={this.state.viewer} />
       </div>
     );
   }

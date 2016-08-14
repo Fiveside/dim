@@ -1,11 +1,11 @@
 {
   "name": "dim",
-  "dependencies": {
-  },
+  "dependencies": {},
   "globalDependencies": {
     "bluebird": "registry:dt/bluebird#2.0.0+20160701023356",
     "core-decorators": "registry:dt/core-decorators#0.10.0+20160316155526",
     "github-electron": "registry:dt/github-electron#1.3.1+20160729121026",
+    "keypress": "registry:dt/keypress#2.0.3+20160317120654",
     "lodash": "registry:dt/lodash#4.14.0+20160802150749",
     "node": "registry:dt/node#6.0.0+20160805072842",
     "react": "registry:dt/react#0.14.0+20160805125551",
