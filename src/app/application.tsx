@@ -40,13 +40,13 @@ export default class Application extends React.Component<any, IApplicationState>
       return btn;
     }
     return (
-      <div>
-        {this.state.viewer.archivePath}
-        {btn}
-        <button onClick={this.handleUnload}>Unload</button>
-        <div>
-          <Viewport viewer={this.state.viewer} />
+      <div className="application">
+        <div className="top-menu">
+          {this.state.viewer.archivePath}
+          {btn}
+          <button onClick={this.handleUnload}>Unload</button>
         </div>
+        <Viewport viewer={this.state.viewer} />
       </div>
     );
   }
