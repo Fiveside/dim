@@ -57,7 +57,6 @@ export default class Viewer { // extends EventEmitter {
   }
 
   nextPage(): boolean {
-    console.log("Next paging", this.pageNumber)
     return this.setPage(this.pageNumber + 1);
   }
 

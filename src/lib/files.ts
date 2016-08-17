@@ -39,7 +39,6 @@ async function readZip(path: string): Promise<ZipRoot> {
 async function readFolder(path: string): Promise<FSRoot> {
   let files: string[] = await Bluebird.promisify(fs.readdir)(path)
   let children = files.map((filename) => {
-    console.log("file found", filename);
     return new FSFile({
       name: filename,
       root: path,

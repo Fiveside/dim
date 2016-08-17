@@ -59,8 +59,10 @@ class HotkeyManager {
       initializers[fullName] = initializer;
     }
 
-    this.keypress.register_many(_.values(initializers));
-    _.assign(this.activated, initializers);
+    for (let [key, value] of _.toPairs(initializers)) {
+      this.activated[key] = this.keypress.register_combo(value);
+    }
+
     this.contexts[context] = Object.keys(initializers);
   }
 

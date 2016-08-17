@@ -36,7 +36,6 @@ export default class Viewport extends React.Component<IViewportProps, {}> {
     let image = {
       backgroundImage: `url(${this.props.viewer.currentPage.sourceUrl})`,
     };
-    console.log("rendering ", image)
     return (
       <div className="viewport">
         <div style={image} className="image-container" />
