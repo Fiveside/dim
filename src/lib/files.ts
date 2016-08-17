@@ -1,9 +1,9 @@
 import * as yauzl from "yauzl";
-import {ZippedFile, ZipRoot} from "./vfs";
+import {ZippedFile, ZipRoot, VirtualRoot, FSRoot, FSFile} from "./vfs";
 import * as Bluebird from "bluebird";
+import * as fs from "fs";
 
-
-export async function readZip(path: string) {
+async function readZip(path: string): Promise<ZipRoot> {
   let zipfile: yauzl.ZipFile;
   try {
     zipfile = await Bluebird.fromCallback(cb => yauzl.open(path, {autoClose: false}, cb));
@@ -34,4 +34,25 @@ export async function readZip(path: string) {
   });
 
   return new ZipRoot(nodes, {zipFile: zipfile});
+}
+
+async function readFolder(path: string): Promise<FSRoot> {
+  let files: string[] = await Bluebird.promisify(fs.readdir)(path)
+  let children = files.map((filename) => {
+    console.log("file found", filename);
+    return new FSFile({
+      name: filename,
+      root: path,
+    });
+  });
+  return new FSRoot(children, path);
+}
+
+
+export async function readThing(path: string): Promise<VirtualRoot> {
+  let stat: fs.Stats = await Bluebird.promisify(fs.lstat)(path);
+  if (stat.isDirectory()) {
+    return await readFolder(path);
+  }
+  return await readZip(path);
 }

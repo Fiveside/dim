@@ -20,7 +20,7 @@ export default class Viewer { // extends EventEmitter {
       this.unload();
     }
     this.archivePath = archivePath;
-    this.pages = await Files.readZip(archivePath);
+    this.pages = await Files.readThing(archivePath);
     this.setPage(0);
     this.isLoaded = true;
     this.currentPage.load();
@@ -57,6 +57,7 @@ export default class Viewer { // extends EventEmitter {
   }
 
   nextPage(): boolean {
+    console.log("Next paging", this.pageNumber)
     return this.setPage(this.pageNumber + 1);
   }
 

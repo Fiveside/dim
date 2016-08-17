@@ -18,11 +18,20 @@ export default class Application extends React.Component<any, IApplicationState>
   };
 
   @autobind
-  async handleLoad(event: React.MouseEvent) {
+  handleLoadFile(event: React.MouseEvent) {
+    this.loadFile(IPC.launchFileBrowser());
+  }
+
+  @autobind
+  handleLoadFolder(event: React.MouseEvent) {
+    this.loadFile(IPC.launchFolderBrowser());
+  }
+
+  async loadFile(path: Promise<string>) {
     try {
-      let folders = await IPC.launchBrowser();
-      console.log(folders);
-      this.state.viewer.load(folders[0]);
+      let files = await path;
+      console.log("loading", files);
+      this.state.viewer.load(files[0]);
     } catch (err) {
       console.log("No file chosen");
     }
@@ -35,15 +44,22 @@ export default class Application extends React.Component<any, IApplicationState>
   }
 
   render() {
-    let btn = <button onClick={this.handleLoad}>Select Folder</button>;
+    let btns = [
+      <button key="filePickerBtn_1" onClick={this.handleLoadFile}>Select File</button>,
+      <button key="filePickerBtn_2" onClick={this.handleLoadFolder}>Select Folder</button>,
+    ];
     if (!this.state.viewer.isLoaded) {
-      return btn;
+      return (
+        <div className="top-menu">
+          {btns}
+        </div>
+      );
     }
     return (
       <div className="application">
         <div className="top-menu">
           {this.state.viewer.archivePath}
-          {btn}
+          {btns}
           <button onClick={this.handleUnload}>Unload</button>
         </div>
         <Viewport viewer={this.state.viewer} />

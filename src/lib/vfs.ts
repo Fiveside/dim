@@ -4,6 +4,8 @@ import * as yauzl from "yauzl";
 import * as Bluebird from "bluebird";
 import * as pUtil from "./promise";
 import {observable, computed} from "mobx";
+const fileUrl = require("file-url");
+const path = require("path");
 
 // Base class for a filesystem entry structure type thing.
 abstract class VirtualEntry {}
@@ -26,22 +28,6 @@ export class VirtualRoot extends VirtualEntry {
   }
 }
 
-interface IZipRootProps {
-  zipFile: yauzl.ZipFile;
-}
-export class ZipRoot extends VirtualRoot {
-  zipFile: yauzl.ZipFile;
-  constructor(children: Array<VirtualFile>, opts: IZipRootProps) {
-    super(children);
-    this.zipFile = opts.zipFile;
-  }
-
-  unload(): void {
-    super.unload();
-    this.zipFile.close();
-  }
-}
-
 // File or folder.
 abstract class VirtualNode extends VirtualEntry {
   name: string;
@@ -56,10 +42,10 @@ export abstract class VirtualFile extends VirtualNode {
   async abstract _load(): Promise<string>;
 
   async load(): Promise<string> {
-    if (this.isLoaded) {
-      return this._source;
+    if (!this.isLoaded) {
+      this._source = await this._load();
     }
-    return await this._load();
+    return this._source;
   }
 
   unload(): void {
@@ -100,6 +86,22 @@ export class MemoryFile extends VirtualFile {
   }
 }
 
+interface IZipRootProps {
+  zipFile: yauzl.ZipFile;
+}
+export class ZipRoot extends VirtualRoot {
+  zipFile: yauzl.ZipFile;
+  constructor(children: Array<VirtualFile>, opts: IZipRootProps) {
+    super(children);
+    this.zipFile = opts.zipFile;
+  }
+
+  unload(): void {
+    super.unload();
+    this.zipFile.close();
+  }
+}
+
 export interface IZippedFileProps extends IVirtualFileProps {
   entry: yauzl.Entry;
   zipFile: yauzl.ZipFile;
@@ -126,7 +128,32 @@ export class ZippedFile extends VirtualFile {
     readStream.resume();
     await p.promise;
 
-    this._source = URL.createObjectURL(new Blob(bufs));
-    return this._source;
+    return URL.createObjectURL(new Blob(bufs));
+  }
+}
+
+export class FSRoot extends VirtualRoot {
+  root: string;
+  constructor(children: VirtualFile[], root: string) {
+    super(children);
+    this.root = root;
+  }
+}
+
+interface IFSFileProps extends IVirtualFileProps {
+  root: string;
+}
+export class FSFile extends VirtualFile {
+  root: string;
+  constructor(opts: IFSFileProps) {
+    super(opts);
+    this.root = opts.root;
+  }
+  async _load(): Promise<string> {
+    return fileUrl(path.join(this.root, this.name));
+  }
+
+  unload(): void {
+    this._source = null;
   }
 }

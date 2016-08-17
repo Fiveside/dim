@@ -6,26 +6,44 @@ interface IPCHandler {
   action(data: any): Promise<any>;
 }
 
-class LaunchFileBrowser implements IPCHandler {
-  name = "launch-file-browser";
-
+abstract class LaunchBrowser {
   browser: Electron.BrowserWindow;
   constructor(browser: Electron.BrowserWindow) {
     this.browser = browser;
   }
-
   action(data: any) {
     return new Promise((resolve, reject) => {
-      Electron.dialog.showOpenDialog(this.browser, <Electron.OpenDialogOptions>{
-        properties: ["openFile"],
-      }, (file) => {
-        if (file == null) {
+      Electron.dialog.showOpenDialog(this.browser, this.getDialogOptions(), (selection) => {
+        if (selection == null) {
           reject(undefined);
         } else {
-          resolve(file);
+          resolve(selection);
         }
       });
     });
+  }
+
+  abstract getDialogOptions(): Electron.OpenDialogOptions;
+}
+
+class LaunchFileBrowser extends LaunchBrowser implements IPCHandler {
+  name = "launch-file-browser";
+  getDialogOptions(): Electron.OpenDialogOptions {
+    return {
+      filters: [
+        {name: "Archives", extensions: ["zip"]},
+      ],
+      properties: ["openFile"],
+    };
+  }
+}
+
+class LaunchFolderBrowser extends LaunchBrowser implements IPCHandler {
+  name = "launch-folder-browser";
+  getDialogOptions(): Electron.OpenDialogOptions {
+    return {
+      properties: ["openDirectory"],
+    };
   }
 }
 
@@ -103,7 +121,8 @@ function makeIPC(handler: IPCHandler): WrappedHandler {
 }
 
 let listeners = {
-  launchBrowser: makeIPC(new LaunchFileBrowser(null)),
+  launchFileBrowser: makeIPC(new LaunchFileBrowser(null)),
+  launchFolderBrowser: makeIPC(new LaunchFolderBrowser(null)),
 };
 export default listeners;
 
