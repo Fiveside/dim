@@ -3,6 +3,7 @@ import {observer} from "mobx-react";
 import Viewer from "./models/viewer";
 import {KeybindManager} from "../lib/keybind";
 import {autobind} from "core-decorators";
+import Renderer from "./renderer";
 
 interface IViewportProps {
   viewer: Viewer;
@@ -33,12 +34,9 @@ export default class Viewport extends React.Component<IViewportProps, {}> {
   }
 
   render() {
-    let image = {
-      backgroundImage: `url(${this.props.viewer.currentPage.sourceUrl})`,
-    };
     return (
       <div className="viewport">
-        <div style={image} className="image-container" />
+        <Renderer className="image-container" file={this.props.viewer.currentPage} />
         <div className="bottom-menu" >
           <button onClick={this.handlePrevClick}>Previous Page</button>
           <span> {this.props.viewer.pageNumber + 1} of {this.props.viewer.pageTotal}</span>

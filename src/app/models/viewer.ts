@@ -1,9 +1,8 @@
 import {observable, computed} from "mobx";
 import * as Files from "../../lib/files";
 import {VirtualRoot, VirtualFile} from "../../lib/vfs";
-// import {EventEmitter} from "events";
 
-export default class Viewer { // extends EventEmitter {
+export default class Viewer {
   @observable isLoaded: boolean = false;
   // Default to a do-nothing so that methods don't die.
   @observable pages: VirtualRoot = new VirtualRoot([]);

@@ -37,35 +37,52 @@ abstract class VirtualNode extends VirtualEntry {
 interface IVirtualFileProps {
   name: string;
 }
+
 export abstract class VirtualFile extends VirtualNode {
-  @observable _source: string;
+  _source: string;
+  image = new Image();
+  @observable isLoaded: boolean = false;
   async abstract _load(): Promise<string>;
 
-  async load(): Promise<string> {
+  async load(): Promise<HTMLImageElement> {
     if (!this.isLoaded) {
       this._source = await this._load();
     }
-    return this._source;
+
+    // Load in an image element for painting
+    let img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = () => {
+        this.isLoaded = true;
+        resolve();
+      };
+      img.onerror = (...args: any[]) => {
+        this.isLoaded = true;
+        console.error("Error occurred during image loading", args);
+        reject("Error occurred during image loading");
+      };
+      img.src = this._source;
+    });
+
+    this.image = img;
+    return img;
   }
 
   unload(): void {
-    if (this.isLoaded) {
-      URL.revokeObjectURL(this._source);
-      this._source = null;
+    if (!this.isLoaded) {
+      return;
     }
-  }
-
-  @computed get isLoaded(): boolean {
-    return this._source != null;
-  }
-
-  @computed get sourceUrl(): string {
-    return this._source;
+    URL.revokeObjectURL(this._source);
+    this._source = null;
+    this.isLoaded = false;
   }
 
   name: string;
   constructor(opts: IVirtualFileProps) {
     super();
+    if (opts.name == null) {
+      debugger;
+    }
     this.name = opts.name;
   }
 }

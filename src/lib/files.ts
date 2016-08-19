@@ -29,7 +29,7 @@ async function readZip(path: string): Promise<ZipRoot> {
     return new ZippedFile({
       entry: entry,
       zipFile: zipfile,
-      name: entry.filename,
+      name: entry.fileName,
     });
   });
 

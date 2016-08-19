@@ -1,10 +1,13 @@
-* Needs to open 3 kinds of files.  Single images, folders, archive
-* archive: zip rar cbr cbz
-* Would be nice to open .tar.xz
-* Image formats: jpg png gif
-* On encountering non-image, display bad image error
+* Archive wishlist: rar, .tar.xz, cbr, 7z.
+* On encountering non-image, display bad image error.
 
-* Display images on the screen.  Scale the image such that it fits within the window
-* simple solution: an <image> tag
+* Noticable ka-chunk when navigating to the next and previous images.
+  * Pre-load future/past images in memory
+  * Pre-resize future/past images to the destination resolution
+  * Should make quick swapping of images nicer.
 
-* Navigate forward and backward in the current archive using left and right keys
+* Canvas renderer?
+  * What resolution should the canvas be?
+  * What resolution should the cached canvases be?
+  * Cached canvas should only be used for default zoom or current zoom?
+
