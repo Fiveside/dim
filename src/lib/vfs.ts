@@ -1,5 +1,4 @@
 // Virtual filesystem
-// import * as Vinyl from "vinyl";
 import * as yauzl from "yauzl";
 import * as Bluebird from "bluebird";
 import * as pUtil from "./promise";
@@ -41,13 +40,69 @@ interface IVirtualFileProps {
 export abstract class VirtualFile extends VirtualNode {
   _source: string;
   image = new Image();
+  canvas = document.createElement("canvas");
+
   @observable isLoaded: boolean = false;
   async abstract _load(): Promise<string>;
+  abstract _unload(source: string): any | void;
+
+  // // Set to true when currently processing a load or unload operation.
+  // _isLoading: boolean = false;
+
+  // // Set to true when a load or unload operation is invoked while processing
+  // // a load or unload operation.
+  // _queuedLoad: boolean = false;
+
+  // // Set to true if the queued operation is .load(), false if the queued
+  // // operation is .unload()
+  // _queueShouldLoad: boolean = false;
+
+  operations: Array<string> = [];
+
+  isLoading: boolean = false;
+  _loadPromise: Promise<any> = null;
+
+  _transitionComplete() {
+    let op = this.operations[this.operations.length - 1];
+    if (op === "load" && !this.isLoaded) {
+      this.load();
+    } else if (op === "unload" && this.isLoaded) {
+      this.unload();
+    }
+  }
 
   async load(): Promise<HTMLImageElement> {
-    if (!this.isLoaded) {
-      this._source = await this._load();
+    // .load() on already loaded
+    if (this.isLoading) {
+      this.operations.push("load");
+      return await this._loadPromise;
     }
+    if (this.isLoaded) {
+      return this.image;
+    }
+
+    this._loadPromise = new Promise(async (resolve, reject) => {
+      try {
+        this._source = await this._load();
+        resolve(await this.doLoad());
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    this.isLoading = true;
+    let result: HTMLImageElement;
+    try {
+      result = await this._loadPromise;
+    } finally {
+      this.isLoading = false;
+      this._transitionComplete();
+    }
+
+    return result;
+  }
+
+  async doLoad(): Promise<HTMLImageElement> {
 
     // Load in an image element for painting
     let img = new Image();
@@ -64,15 +119,53 @@ export abstract class VirtualFile extends VirtualNode {
       img.src = this._source;
     });
 
+    let ctx = this.canvas.getContext("2d");
+    let canvas = this.canvas;
+    // let bbox = canvas.getBoundingClientRect();
+    canvas.width = 1025;
+    canvas.height = 965;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw the image so that it is centered on the canvas
+    let target = {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    };
+    let imgAr = img.width / img.height;
+    let canvasAr = canvas.width / canvas.height;
+    if (imgAr > canvasAr) {
+      // image is wider than window
+      target.width = canvas.width;
+      target.height = img.height * (canvas.width / img.width);
+      target.x = 0;
+      target.y = (canvas.height / 2) - (target.height / 2);
+    } else {
+      // image is taller than window
+      target.height = canvas.height;
+      target.width = img.width * (canvas.height / img.height);
+      target.y = 0;
+      target.x = (canvas.width / 2) - (target.width / 2);
+    }
+    ctx.drawImage(img, target.x, target.y, target.width, target.height);
+
     this.image = img;
     return img;
   }
 
   unload(): void {
+    if (this.isLoading) {
+      this.operations.push("unload");
+      return;
+    }
     if (!this.isLoaded) {
       return;
     }
-    URL.revokeObjectURL(this._source);
+
+    delete this.image.src;
+    this._unload(this._source);
     this._source = null;
     this.isLoaded = false;
   }
@@ -98,8 +191,11 @@ export class MemoryFile extends VirtualFile {
   }
 
   async _load(): Promise<string> {
-    this._source = URL.createObjectURL(this.contents);
-    return this._source;
+    return URL.createObjectURL(this.contents);
+  }
+
+  _unload(source: string) {
+    URL.revokeObjectURL(source);
   }
 }
 
@@ -147,6 +243,10 @@ export class ZippedFile extends VirtualFile {
 
     return URL.createObjectURL(new Blob(bufs));
   }
+
+  _unload(source: string) {
+    URL.revokeObjectURL(source);
+  }
 }
 
 export class FSRoot extends VirtualRoot {
@@ -170,7 +270,7 @@ export class FSFile extends VirtualFile {
     return fileUrl(path.join(this.root, this.name));
   }
 
-  unload(): void {
-    this._source = null;
+  _unload() {
+    // Nothing to do here.
   }
 }

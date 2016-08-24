@@ -19,22 +19,30 @@ interface ICanvasRendererRefs {
 export default class CanvasRenderer extends React.Component<IRendererProps, {}> {
 
   refs: ICanvasRendererRefs;
-  paint: {(): void};
+  doPaint: {(): void};
   disposer: {(): void};
 
   constructor() {
     super();
-    this.paint = throttleAnimationFrame(this._paint.bind(this));
+    this.doPaint = throttleAnimationFrame(this._paint.bind(this));
   }
 
   componentDidMount() {
-    this.disposer = autorun(() => {
-      // Touch some props so that mobx knows what to observe for this
-      this.props.file.isLoaded;
-
-      this.paint();
-    });
+    this.disposer = autorun(this.paint.bind(this));
     window.addEventListener("resize", this.onResize);
+  }
+
+  async paint() {
+      // Touch some props so that mobx knows what to observe for this
+      if (!this.props.file.isLoaded) {
+        console.log("Image not loaded, cannot paint");
+        return;
+      }
+
+      console.log("rendering", this.props.file.name);
+      // debugger;
+      await this.props.file.load();
+      this.doPaint(this.props.file.image, this.props.file.canvas);
   }
 
   componentWillUnmount() {
@@ -47,7 +55,13 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
   }
 
   // use this.paint, that throttles on animation frame.
-  _paint() {
+  _paint(img: HTMLImageElement, fromCanvas: HTMLCanvasElement) {
+    // Because paint is called asynchronously, it may be called after the
+    // component is dead.
+    if (this.refs.canvas == null) {
+      return;
+    }
+
     let canvas = this.refs.canvas;
     let bbox = canvas.getBoundingClientRect();
     canvas.width = bbox.width;
@@ -56,12 +70,11 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
     let ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    let file = this.props.file;
-    if (!file.isLoaded) {
-      console.log("Image not loaded, cannot paint");
-      return;
-    }
-    let img = file.image;
+
+
+    ctx.drawImage(fromCanvas, 0, 0);
+
+
 
     // Draw the image so that it is centered on the canvas
     let target = {
@@ -85,7 +98,13 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
       target.y = 0;
       target.x = (canvas.width / 2) - (target.width / 2);
     }
-    ctx.drawImage(file.image, target.x, target.y, target.width, target.height);
+
+    let start = new Date().getTime();
+    console.log("before draw image", );
+    ctx.drawImage(img, target.x, target.y, target.width, target.height);
+    let end = new Date().getTime() - start;
+    console.log("after draw image", end);
+    // debugger;
   }
 
   @autobind

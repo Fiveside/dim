@@ -6,8 +6,17 @@
   * Pre-resize future/past images to the destination resolution
   * Should make quick swapping of images nicer.
 
-* Canvas renderer?
-  * What resolution should the canvas be?
-  * What resolution should the cached canvases be?
-  * Cached canvas should only be used for default zoom or current zoom?
+* Right and left mouse click for forward and back
 
+* Zoom modes:
+  * Fit image in window
+  * Fit weakest side to window (if taller than window, then fit width, vice versa)
+  * Show 100%
+  * Mouse wheel to scroll image when larger than window
+
+* Navigate to next or previous file
+  * Hotkey: alt+left, alt+right
+
+* Drag and drop to open a new file.
+
+* if you resize from the bottom right hand corner out then in, scrollbars appear.

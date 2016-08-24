@@ -1,16 +1,21 @@
 import {observable, computed} from "mobx";
 import * as Files from "../../lib/files";
 import {VirtualRoot, VirtualFile} from "../../lib/vfs";
+import {PageCacher} from "../../lib/page-cache";
 
 export default class Viewer {
   @observable isLoaded: boolean = false;
   // Default to a do-nothing so that methods don't die.
-  @observable pages: VirtualRoot = new VirtualRoot([]);
+  @observable root: VirtualRoot = new VirtualRoot([]);
+  @observable pages: PageCacher;
   @observable archivePath: string = "";
-  @observable pageNumber: number = 0;
+
+  @computed get pageNumber() {
+    return this.pages.pageNum;
+  }
 
   @computed get pageTotal(): number {
-    return this.pages.length;
+    return this.root.length;
   }
 
   // Resolves when the load has completed.
@@ -19,47 +24,57 @@ export default class Viewer {
       this.unload();
     }
     this.archivePath = archivePath;
-    this.pages = await Files.readThing(archivePath);
-    this.setPage(0);
+    this.root = await Files.readThing(archivePath);
+    this.pages = new PageCacher(this.root.children);
+    // this.setPage(0);
     this.isLoaded = true;
-    this.currentPage.load();
+    // this.currentPage.load();
   }
 
   unload() {
     this.archivePath = "";
-    this.pages.unload();
+    this.root.unload();
     this.isLoaded = false;
     this.pageNumber = 0;
+    delete this.pages;
   }
 
   @computed get currentPage(): VirtualFile {
-    return this.pages.children[this.pageNumber];
+    return this.pages.currentPage;
   }
 
-  async _setPage(pageNum: number): Promise<any> {
-    let current = this.currentPage;
-    let page = this.pages.children[pageNum];
-    if (current !== page) {
-      await page.load();
-    }
-    this.pageNumber = pageNum;
-    current.unload();
-  }
+  // async _setPage(pageNum: number): Promise<any> {
+  //   let current = this.currentPage;
+  //   let page = this.pages.children[pageNum];
+  //   if (current !== page) {
+  //     await page.load();
+  //   }
+  //   this.pageNumber = pageNum;
+  //   current.unload();
+  // }
 
   setPage(pageNum: number): boolean {
     // Assert that we can first.
-    if (this.pages.length <= pageNum || pageNum < 0) {
+    if (this.root.length <= pageNum || pageNum < 0) {
       return false;
     }
-    this._setPage(pageNum);
+    this.pages.jumpPage(pageNum);
     return true;
   }
 
   nextPage(): boolean {
-    return this.setPage(this.pageNumber + 1);
+    if (this.pages.pageNum + 1 >= this.root.length) {
+      return false;
+    }
+    this.pages.navNext();
+    return true;
   }
 
   previousPage(): boolean {
-    return this.setPage(this.pageNumber - 1);
+    if (this.pages.pageNum <= 0) {
+      return false;
+    }
+    this.pages.navPrev();
+    return true;
   }
 }
