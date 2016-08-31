@@ -1,6 +1,6 @@
 // RequestAnimationFrame throttling
-interface IthrottleAnimationFrameCallback {(...x: any[]): any; }
-export function throttleAnimationFrame(callback: IthrottleAnimationFrameCallback) {
+interface IthrottleAnimationFrameCallback {(...x: any[]): any | void; }
+export function throttleAnimationFrame(callback: IthrottleAnimationFrameCallback): IthrottleAnimationFrameCallback {
   let running = false;
   let lastArgs: Array<any> = [];
   return function(...args: any[]) {

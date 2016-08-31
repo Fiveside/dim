@@ -40,7 +40,7 @@ interface IVirtualFileProps {
 export abstract class VirtualFile extends VirtualNode {
   _source: string;
   image = new Image();
-  canvas = document.createElement("canvas");
+  // canvas = document.createElement("canvas");
 
   @observable isLoaded: boolean = false;
   async abstract _load(): Promise<string>;
@@ -96,6 +96,7 @@ export abstract class VirtualFile extends VirtualNode {
       result = await this._loadPromise;
     } finally {
       this.isLoading = false;
+      this.isLoaded = true;
       this._transitionComplete();
     }
 
@@ -108,48 +109,14 @@ export abstract class VirtualFile extends VirtualNode {
     let img = new Image();
     await new Promise((resolve, reject) => {
       img.onload = () => {
-        this.isLoaded = true;
         resolve();
       };
       img.onerror = (...args: any[]) => {
-        this.isLoaded = true;
         console.error("Error occurred during image loading", args);
         reject("Error occurred during image loading");
       };
       img.src = this._source;
     });
-
-    let ctx = this.canvas.getContext("2d");
-    let canvas = this.canvas;
-    // let bbox = canvas.getBoundingClientRect();
-    canvas.width = 1025;
-    canvas.height = 965;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw the image so that it is centered on the canvas
-    let target = {
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0,
-    };
-    let imgAr = img.width / img.height;
-    let canvasAr = canvas.width / canvas.height;
-    if (imgAr > canvasAr) {
-      // image is wider than window
-      target.width = canvas.width;
-      target.height = img.height * (canvas.width / img.width);
-      target.x = 0;
-      target.y = (canvas.height / 2) - (target.height / 2);
-    } else {
-      // image is taller than window
-      target.height = canvas.height;
-      target.width = img.width * (canvas.height / img.height);
-      target.y = 0;
-      target.x = (canvas.width / 2) - (target.width / 2);
-    }
-    ctx.drawImage(img, target.x, target.y, target.width, target.height);
 
     this.image = img;
     return img;

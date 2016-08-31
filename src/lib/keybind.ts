@@ -48,8 +48,7 @@ class HotkeyManager {
       let callback = activators[name];
       let initializer: KeypressInitializer = {
         keys: KEYBINDS[fullName],
-        on_keyup: callback,
-        is_sequence: true,
+        on_keydown: callback,
         is_unordered: false,
       };
 

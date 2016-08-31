@@ -26,32 +26,19 @@ export default class Viewer {
     this.archivePath = archivePath;
     this.root = await Files.readThing(archivePath);
     this.pages = new PageCacher(this.root.children);
-    // this.setPage(0);
     this.isLoaded = true;
-    // this.currentPage.load();
   }
 
   unload() {
     this.archivePath = "";
     this.root.unload();
     this.isLoaded = false;
-    this.pageNumber = 0;
     delete this.pages;
   }
 
   @computed get currentPage(): VirtualFile {
     return this.pages.currentPage;
   }
-
-  // async _setPage(pageNum: number): Promise<any> {
-  //   let current = this.currentPage;
-  //   let page = this.pages.children[pageNum];
-  //   if (current !== page) {
-  //     await page.load();
-  //   }
-  //   this.pageNumber = pageNum;
-  //   current.unload();
-  // }
 
   setPage(pageNum: number): boolean {
     // Assert that we can first.

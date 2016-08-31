@@ -65,17 +65,19 @@ export class PageCacher {
       console.warn("Attempted to navigate to a page that was out of range.");
       return;
     }
-    this.currentPage = this._nextPageCache.shift();
-    this._prevPageCache.unshift(this.currentPage);
-    if (this._prevPageCache.length > this._prevCacheSize) {
-      this._prevPageCache.pop().unload();
-    }
 
     let nextLoadNum = this.pageNum + this._nextPageCache.length + 1;
     if (nextLoadNum < this._pages.length) {
       this._nextPageCache.push(this._pages[nextLoadNum]);
       this._pages[nextLoadNum].load();
     }
+
+    this._prevPageCache.unshift(this.currentPage);
+    this.currentPage = this._nextPageCache.shift();
+    if (this._prevPageCache.length > this._prevCacheSize) {
+      this._prevPageCache.pop().unload();
+    }
+
     this.pageNum += 1;
   }
 
@@ -85,11 +87,6 @@ export class PageCacher {
       console.warn("Attempted to navigate to a page that was out of range.");
       return;
     }
-    this.currentPage = this._prevPageCache.shift();
-    this._nextPageCache.unshift(this.currentPage);
-    if (this._nextPageCache.length > this._nextCacheSize) {
-      this._nextPageCache.pop().unload();
-    }
 
     let prevLoadNum = this.pageNum - this._prevPageCache.length - 1;
     if (prevLoadNum >= 0) {
@@ -97,6 +94,13 @@ export class PageCacher {
       this._prevPageCache.push(page);
       page.load();
     }
+
+    this._nextPageCache.unshift(this.currentPage);
+    this.currentPage = this._prevPageCache.shift();
+    if (this._nextPageCache.length > this._nextCacheSize) {
+      this._nextPageCache.pop().unload();
+    }
+
     this.pageNum -= 1;
   }
 }

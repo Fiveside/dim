@@ -35,7 +35,6 @@ export default class Application extends React.Component<any, IApplicationState>
     } catch (err) {
       console.log("No file chosen");
     }
-    window.viewer = this.state.viewer;
   }
 
   @autobind

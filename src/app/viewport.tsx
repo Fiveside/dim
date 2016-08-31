@@ -24,12 +24,12 @@ export default class Viewport extends React.Component<IViewportProps, {}> {
   }
 
   @autobind
-  async handleNextClick(event: Event) {
+  async handleNextClick(event: React.MouseEvent | KeyboardEvent) {
     this.props.viewer.nextPage();
   }
 
   @autobind
-  async handlePrevClick(event: Event) {
+  async handlePrevClick(event: React.MouseEvent | KeyboardEvent) {
     this.props.viewer.previousPage();
   }
 
