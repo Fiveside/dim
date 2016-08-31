@@ -43,38 +43,28 @@ export abstract class VirtualFile extends VirtualNode {
   // canvas = document.createElement("canvas");
 
   @observable isLoaded: boolean = false;
+  isLoading: boolean = false;
+
   async abstract _load(): Promise<string>;
   abstract _unload(source: string): any | void;
 
-  // // Set to true when currently processing a load or unload operation.
-  // _isLoading: boolean = false;
-
-  // // Set to true when a load or unload operation is invoked while processing
-  // // a load or unload operation.
-  // _queuedLoad: boolean = false;
-
-  // // Set to true if the queued operation is .load(), false if the queued
-  // // operation is .unload()
-  // _queueShouldLoad: boolean = false;
-
-  operations: Array<string> = [];
-
-  isLoading: boolean = false;
+  // A flag that dictates whether or not the last operation invoked on this
+  // was a load operation (false = unload operation).
+  _lastLoad: boolean = false;
   _loadPromise: Promise<any> = null;
 
   _transitionComplete() {
-    let op = this.operations[this.operations.length - 1];
-    if (op === "load" && !this.isLoaded) {
+    if (this._lastLoad && !this.isLoaded) {
       this.load();
-    } else if (op === "unload" && this.isLoaded) {
+    } else if (!this._lastLoad && this.isLoaded) {
       this.unload();
     }
   }
 
   async load(): Promise<HTMLImageElement> {
+    this._lastLoad = true;
     // .load() on already loaded
     if (this.isLoading) {
-      this.operations.push("load");
       return await this._loadPromise;
     }
     if (this.isLoaded) {
@@ -123,8 +113,8 @@ export abstract class VirtualFile extends VirtualNode {
   }
 
   unload(): void {
+    this._lastLoad = false;
     if (this.isLoading) {
-      this.operations.push("unload");
       return;
     }
     if (!this.isLoaded) {
