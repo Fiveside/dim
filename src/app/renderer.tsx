@@ -9,6 +9,8 @@ import * as Drawing from "../lib/drawing";
 interface IRendererProps {
   className: string;
   file: IVirtualFile;
+  onLeftClick: {(e: React.MouseEvent): any};
+  onRightClick: {(e: React.MouseEvent): any};
 }
 
 interface ICanvasRendererRefs {
@@ -76,8 +78,26 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
     this.paint();
   }
 
+  @autobind
+  onContextMenu(e: React.MouseEvent) {
+    if (this.props.onRightClick) {
+      this.props.onRightClick(e);
+    }
+  }
+
+  @autobind
+  onClick(e: React.MouseEvent) {
+    if (this.props.onLeftClick) {
+      this.props.onLeftClick(e);
+    }
+  }
+
   render() {
     this.paint();
-    return <canvas className={this.props.className} ref="canvas" />;
+    return <canvas ref="canvas"
+                   onContextMenu={this.onContextMenu}
+                   onClick={this.onClick}
+                   className={this.props.className}
+    />;
   }
 }

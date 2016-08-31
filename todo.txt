@@ -1,12 +1,11 @@
 * Archive wishlist: rar, .tar.xz, cbr, 7z.
 * On encountering non-image, display bad image error.
 
-* Noticable ka-chunk when navigating to the next and previous images.
-  * Pre-load future/past images in memory
-  * Pre-resize future/past images to the destination resolution
-  * Should make quick swapping of images nicer.
-
-* Right and left mouse click for forward and back
+* Resize quality is sub-par.
+  * Chrome by default uses bilinear?  implement lanczos?
+  * Pre-resize future/past images to the destination resolution (may be required if resize is slow)
+    * Change page cacheing style to cache paintable displays instead of display components?
+      * Would mean invalidating cache on resize.
 
 * Zoom modes:
   * Fit image in window

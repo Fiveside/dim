@@ -36,7 +36,11 @@ export default class Viewport extends React.Component<IViewportProps, {}> {
   render() {
     return (
       <div className="viewport">
-        <Renderer className="image-container" file={this.props.viewer.currentPage} />
+        <Renderer className="image-container"
+                  file={this.props.viewer.currentPage}
+                  onLeftClick={this.handleNextClick}
+                  onRightClick={this.handlePrevClick}
+        />
         <div className="bottom-menu" >
           <button onClick={this.handlePrevClick}>Previous Page</button>
           <span> {this.props.viewer.pageNumber + 1} of {this.props.viewer.pageTotal}</span>
