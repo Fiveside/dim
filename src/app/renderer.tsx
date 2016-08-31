@@ -1,6 +1,6 @@
 import * as React from "react";
 import {observer} from "mobx-react";
-import {VirtualFile} from "../lib/vfs";
+import {IVirtualFile} from "../lib/vfs";
 import {autobind} from "core-decorators";
 import {throttleAnimationFrame} from "../lib/util";
 import {autorun} from "mobx";
@@ -8,7 +8,7 @@ import * as Drawing from "../lib/drawing";
 
 interface IRendererProps {
   className: string;
-  file: VirtualFile;
+  file: IVirtualFile;
 }
 
 interface ICanvasRendererRefs {
@@ -53,7 +53,7 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
   }
 
   // use this.paint, that throttles on animation frame.
-  _paint(img: HTMLImageElement) {
+  _paint(source: Drawing.DrawSource) {
     console.log("painting", this.props.file.name);
 
     // Because paint is called asynchronously, it may be called after the
@@ -67,7 +67,7 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
     canvas.width = bbox.width;
     canvas.height = bbox.height;
 
-    Drawing.fit(this.refs.canvas, img);
+    Drawing.fit(this.refs.canvas, source);
   }
 
   @autobind

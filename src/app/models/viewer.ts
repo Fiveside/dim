@@ -1,6 +1,6 @@
 import {observable, computed} from "mobx";
 import * as Files from "../../lib/files";
-import {VirtualRoot, VirtualFile} from "../../lib/vfs";
+import {VirtualRoot, IVirtualFile} from "../../lib/vfs";
 import {PageCacher} from "../../lib/page-cache";
 
 export default class Viewer {
@@ -31,12 +31,13 @@ export default class Viewer {
 
   unload() {
     this.archivePath = "";
+    this.pages.destroy();
     this.root.unload();
     this.isLoaded = false;
     delete this.pages;
   }
 
-  @computed get currentPage(): VirtualFile {
+  @computed get currentPage(): IVirtualFile {
     return this.pages.currentPage;
   }
 

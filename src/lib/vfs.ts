@@ -5,6 +5,7 @@ import * as pUtil from "./promise";
 import {observable, computed} from "mobx";
 const fileUrl = require("file-url");
 const path = require("path");
+import * as Drawing from "./drawing";
 
 // Base class for a filesystem entry structure type thing.
 abstract class VirtualEntry {}
@@ -37,7 +38,16 @@ interface IVirtualFileProps {
   name: string;
 }
 
-export abstract class VirtualFile extends VirtualNode {
+export interface IVirtualFile {
+  image: Drawing.DrawSource;
+  load(): Promise<Drawing.DrawSource>;
+  unload(): void;
+  isLoaded: boolean;
+  isLoading: boolean;
+  name: string;
+}
+
+export abstract class VirtualFile extends VirtualNode implements IVirtualFile {
   _source: string;
   image = new Image();
   // canvas = document.createElement("canvas");
@@ -61,7 +71,7 @@ export abstract class VirtualFile extends VirtualNode {
     }
   }
 
-  async load(): Promise<HTMLImageElement> {
+  async load(): Promise<Drawing.DrawSource> {
     this._lastLoad = true;
     // .load() on already loaded
     if (this.isLoading) {

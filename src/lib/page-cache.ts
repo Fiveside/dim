@@ -1,23 +1,24 @@
 // This acts as a cache for vfs pages managing loading and unloading.
-import {VirtualFile} from "./vfs";
-import {observable} from "mobx";
+import {VirtualFile, IVirtualFile} from "./vfs";
+import {observable, computed, autorun} from "mobx";
+import * as Drawing from "./drawing";
 
 export class PageCacher {
-  _pages: VirtualFile[];
+  _pages: CanvasCache[];
   @observable pageNum: number;
 
   // stacks
-  _nextPageCache: Array<VirtualFile> = [];
-  _prevPageCache: Array<VirtualFile> = [];
+  _nextPageCache: Array<IVirtualFile> = [];
+  _prevPageCache: Array<IVirtualFile> = [];
 
-  _nextCacheSize = 2;
-  _prevCacheSize = 2;
+  _nextCacheSize = 15;
+  _prevCacheSize = 5;
 
-  @observable currentPage: VirtualFile;
+  @observable currentPage: IVirtualFile;
 
   // pages must be an array of 1 or more
   constructor(pages: VirtualFile[]) {
-    this._pages = pages;
+    this._pages = pages.map(x => new CanvasCache(x));
     this.jumpPage(0);
   }
 
@@ -102,5 +103,77 @@ export class PageCacher {
     }
 
     this.pageNum -= 1;
+  }
+
+  destroy() {
+    this._pages.forEach(x => {
+      x.unload();
+      x.destroy();
+    });
+  }
+}
+
+export class CanvasCache implements IVirtualFile {
+  _file: VirtualFile;
+  image: Drawing.DrawSource;
+
+  // This is for determining if the canvas is loaded or not
+  @observable _isLoaded: boolean = false;
+  _stopListening: {(): void};
+
+  constructor(file: VirtualFile) {
+    this._file = file;
+
+    this._stopListening = autorun(() => {
+      if (this._file.isLoaded) {
+        this.loadCanvas();
+      } else {
+        this.unloadCanvas();
+      }
+    });
+  }
+
+  destroy() {
+    this._stopListening();
+  }
+
+  // Proxy some stuff to the file.
+  get isLoading() { return this._file.isLoading; }
+  get name() { return this._file.name; }
+  unload() { return this._file.unload(); }
+
+  async load(): Promise<Drawing.DrawSource> {
+    await this._file.load();
+    this.loadCanvas();
+    return this.image;
+  }
+
+  @computed
+  get isLoaded() {
+    return this._file.isLoaded && this._isLoaded;
+  }
+
+  loadCanvas() {
+    if (!this._isLoaded && this._file.isLoaded) {
+      this._loadCanvas();
+    }
+    this._isLoaded = true;
+  }
+
+  _loadCanvas() {
+    this.image = document.createElement("canvas");
+    Drawing.fullSize(this.image, this._file.image);
+  }
+
+  unloadCanvas() {
+    let isLoaded = this._isLoaded;
+    this._isLoaded = false;
+    if (isLoaded) {
+      this._unloadCanvas();
+    }
+  }
+
+  _unloadCanvas() {
+    delete this.image;
   }
 }
