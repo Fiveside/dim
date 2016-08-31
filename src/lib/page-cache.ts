@@ -11,8 +11,8 @@ export class PageCacher {
   _nextPageCache: Array<IVirtualFile> = [];
   _prevPageCache: Array<IVirtualFile> = [];
 
-  _nextCacheSize = 15;
-  _prevCacheSize = 5;
+  _nextCacheSize = 20;
+  _prevCacheSize = 10;
 
   @observable currentPage: IVirtualFile;
 
