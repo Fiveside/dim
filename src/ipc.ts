@@ -1,16 +1,23 @@
 import * as Electron from "electron";
 import * as _ from "lodash";
 
+// TODO: This file needs to be cleaned up, maybe something similar to
+// events.ts
+
 interface IPCHandler {
   name: string;
   action(data: any): Promise<any>;
+  browser?: Electron.BrowserWindow;
 }
 
-abstract class LaunchBrowser {
+class IPCHandlerBase {
   browser: Electron.BrowserWindow;
   constructor(browser: Electron.BrowserWindow) {
     this.browser = browser;
   }
+}
+
+abstract class LaunchBrowser extends IPCHandlerBase{
   action(data: any) {
     return new Promise((resolve, reject) => {
       Electron.dialog.showOpenDialog(this.browser, this.getDialogOptions(), (selection) => {
@@ -47,6 +54,32 @@ class LaunchFolderBrowser extends LaunchBrowser implements IPCHandler {
   }
 }
 
+class FullScreenChecker extends IPCHandlerBase implements IPCHandler {
+  name = "check-full-screen";
+  action(): Promise<boolean> {
+    return Promise.resolve(this.browser.isFullScreen());
+  }
+}
+
+class FullScreenSetter extends IPCHandlerBase implements IPCHandler {
+  name = "set-full-screen";
+  action(mode: boolean): Promise<void> {
+    this.browser.setAutoHideMenuBar(mode);
+    this.browser.setFullScreen(mode);
+    return Promise.resolve();
+  }
+}
+
+class FullScreenToggler extends IPCHandlerBase implements IPCHandler {
+  name = "toggle-full-screen";
+  action(): Promise<void> {
+    let mode = !this.browser.isFullScreen();
+    this.browser.setAutoHideMenuBar(mode);
+    this.browser.setFullScreen(mode);
+    return Promise.resolve();
+  }
+}
+
 interface PromiseResolver {
   resolve(data: any): void;
   reject(data: any): void;
@@ -54,7 +87,7 @@ interface PromiseResolver {
 interface MessageMap {
   [name: string]: Map<string, PromiseResolver>;
 }
-const messages: MessageMap = {};
+const MESSAGES: MessageMap = {};
 
 interface IPCSendMessage {
   name: string;
@@ -71,7 +104,7 @@ interface IPCRecieveMessage {
 
 function makeListener(name: string) {
   Electron.ipcRenderer.on(name, (event: Electron.IpcRendererEvent, message: IPCRecieveMessage) => {
-    let map = messages[name];
+    let map = MESSAGES[name];
 
     if (!map.has(message.id)) {
       console.error("recieved IPC message with no destination!", event, message);
@@ -93,12 +126,15 @@ interface WrappedHandler {
   (data?: any): Promise<any>;
 }
 
+// Accepts an IPC handler and returns a method that handles the communication
+// to the host process to request the host process to perform the action.
+// Inner function returns a promise once the action is complete.
 function makeIPC(handler: IPCHandler): WrappedHandler {
   let wrapper = <WrappedHandler>function(data?: any): Promise<any> {
     let tempid = _.uniqueId("ipc_");
-    let handlers = messages[handler.name];
+    let handlers = MESSAGES[handler.name];
     if (handlers == null) {
-      messages[handler.name] = handlers = new Map();
+      MESSAGES[handler.name] = handlers = new Map();
       makeListener(handler.name);
     }
 
@@ -123,11 +159,18 @@ function makeIPC(handler: IPCHandler): WrappedHandler {
 let listeners = {
   launchFileBrowser: makeIPC(new LaunchFileBrowser(null)),
   launchFolderBrowser: makeIPC(new LaunchFolderBrowser(null)),
+  isFullScreen: makeIPC(new FullScreenChecker(null)),
+  setFullScreen: makeIPC(new FullScreenSetter(null)),
+  toggleFullScreen: makeIPC(new FullScreenToggler(null)),
 };
 export default listeners;
 
-export function initIPCListeners() {
+export function initIPCListeners(bw: Electron.BrowserWindow) {
   _.values(listeners).forEach((handler: WrappedHandler) => {
+
+    // This is the host application process.  Set the browser param.
+    handler.ipc.browser = bw;
+
     Electron.ipcMain.on(handler.ipc.name, (event, message) => {
       handler.ipc.action(message.data)
       .then((resolveData) => {

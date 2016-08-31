@@ -1,6 +1,7 @@
 // import * as Electron from "electron";
 import * as Electron from "electron";
 import {initIPCListeners} from "./ipc";
+import {initEvents} from "./events";
 
 // Module to control application life.
 const app = Electron.app;
@@ -28,15 +29,18 @@ function createWindow () {
     // when you should delete the corresponding element.
     mainWindow = null;
   });
+
+  // Initialize the window message pump.
+  initEvents(mainWindow);
+
+  // Initialize the ipc subsystem
+  initIPCListeners(mainWindow);
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on("ready", function() {
-  // Initialize the ipc subsystem
-  initIPCListeners();
-
   createWindow();
 });
 

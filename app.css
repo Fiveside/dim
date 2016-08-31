@@ -12,6 +12,9 @@ body {
 
   width: 100%;
   height: 100%;
+
+  box-sizing: border-box;
+  padding-bottom: 1.3rem;
 }
 
 .application {
@@ -39,4 +42,22 @@ body {
 
   display: flex;
   flex-direction: column;
+  background-color: inherit;
 }
+
+.bottom-menu {
+  position: fixed;
+  bottom: 0;
+  height: 1.3rem;
+}
+
+.fullscreen .top-menu {
+  display: none;
+}
+.fullscreen .bottom-menu {
+  display: none;
+}
+.fullscreen .image-container {
+  padding-bottom: 0rem;
+}
+

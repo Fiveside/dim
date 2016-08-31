@@ -5,6 +5,8 @@ import {autobind} from "core-decorators";
 import ViewerModel from "./models/viewer";
 import Viewport from "./viewport";
 import {observer} from "mobx-react";
+import WindowState from "./models/window";
+const cx = require("classnames");
 
 interface IApplicationState {
   viewer: ViewerModel;
@@ -55,8 +57,12 @@ export default class Application extends React.Component<any, IApplicationState>
         </div>
       );
     }
+    let appClass = {
+      "application": true,
+      "fullscreen": WindowState.isFullScreen,
+    };
     return (
-      <div className="application">
+      <div className={cx(appClass)}>
         <div className="top-menu">
           {this.state.viewer.archivePath}
           {btns}

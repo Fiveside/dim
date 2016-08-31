@@ -4,8 +4,8 @@
   "description": "An image viewer",
   "main": "main.js",
   "repository": {
-      "type": "git",
-      "url": "git://github.com/Fiveside/dim.git"
+    "type": "git",
+    "url": "git://github.com/Fiveside/dim.git"
   },
   "scripts": {
     "start": "gulp",
@@ -28,12 +28,14 @@
   },
   "dependencies": {
     "bluebird": "^3.4.4",
+    "classnames": "^2.2.5",
     "core-decorators": "^0.12.3",
     "file-url": "^1.1.0",
     "keypress": "git+https://github.com/dmauro/Keypress.git",
     "lodash": "^4.15.0",
     "mobx": "^2.5.0",
     "mobx-react": "^3.5.5",
+    "natsort": "^1.0.6",
     "react": "^15.3.1",
     "react-dom": "^15.3.1",
     "yauzl": "^2.6.0"

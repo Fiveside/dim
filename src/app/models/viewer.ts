@@ -2,6 +2,7 @@ import {observable, computed} from "mobx";
 import * as Files from "../../lib/files";
 import {VirtualRoot, IVirtualFile} from "../../lib/vfs";
 import {PageCacher} from "../../lib/page-cache";
+const natsort = require("natsort");
 
 export default class Viewer {
   @observable isLoaded: boolean = false;
@@ -25,7 +26,13 @@ export default class Viewer {
     }
     this.archivePath = archivePath;
     this.root = await Files.readThing(archivePath);
-    this.pages = new PageCacher(this.root.children);
+
+    let ns = natsort({insensitive: true});
+    let children = this.root.children.slice().sort((l, r) => {
+      return ns(l.name, r.name);
+    });
+
+    this.pages = new PageCacher(children);
     this.isLoaded = true;
   }
 

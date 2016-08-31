@@ -56,7 +56,7 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
 
   // use this.paint, that throttles on animation frame.
   _paint(source: Drawing.DrawSource) {
-    console.log("painting", this.props.file.name);
+    // console.log("painting", this.props.file.name);
 
     // Because paint is called asynchronously, it may be called after the
     // component is dead.

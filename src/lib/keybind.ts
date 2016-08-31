@@ -6,6 +6,7 @@ import * as _ from "lodash";
 const KEYBINDS: {[key: string]: string} = {
   "viewport.next_page": "right",
   "viewport.previous_page": "left",
+  "viewport.fullscreen": "f",
 };
 
 interface KeyboardEventHandler {(e?: KeyboardEvent): any; }
