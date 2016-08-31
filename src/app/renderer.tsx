@@ -92,10 +92,16 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
     }
   }
 
+  onMouseDown(e: React.MouseEvent) {
+    // This prevents double clicking from selecting random text in the app.
+    e.preventDefault();
+  }
+
   render() {
     this.paint();
     return <canvas ref="canvas"
                    onContextMenu={this.onContextMenu}
+                   onMouseDown={this.onMouseDown}
                    onClick={this.onClick}
                    className={this.props.className}
     />;
