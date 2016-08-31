@@ -31,7 +31,6 @@ export default class Viewer {
 
   unload() {
     this.archivePath = "";
-    this.pages.destroy();
     this.root.unload();
     this.isLoaded = false;
     delete this.pages;

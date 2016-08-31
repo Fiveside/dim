@@ -49,8 +49,7 @@ export interface IVirtualFile {
 
 export abstract class VirtualFile extends VirtualNode implements IVirtualFile {
   _source: string;
-  image = new Image();
-  // canvas = document.createElement("canvas");
+  image: HTMLCanvasElement;
 
   @observable isLoaded: boolean = false;
   isLoading: boolean = false;
@@ -91,7 +90,7 @@ export abstract class VirtualFile extends VirtualNode implements IVirtualFile {
     });
 
     this.isLoading = true;
-    let result: HTMLImageElement;
+    let result: Drawing.DrawSource;
     try {
       result = await this._loadPromise;
     } finally {
@@ -103,12 +102,13 @@ export abstract class VirtualFile extends VirtualNode implements IVirtualFile {
     return result;
   }
 
-  async doLoad(): Promise<HTMLImageElement> {
-
+  async doLoad(): Promise<HTMLCanvasElement> {
     // Load in an image element for painting
     let img = new Image();
+    let canvas = document.createElement("canvas");
     await new Promise((resolve, reject) => {
       img.onload = () => {
+        Drawing.fullSize(canvas, img);
         resolve();
       };
       img.onerror = (...args: any[]) => {
@@ -118,8 +118,8 @@ export abstract class VirtualFile extends VirtualNode implements IVirtualFile {
       img.src = this._source;
     });
 
-    this.image = img;
-    return img;
+    this.image = canvas;
+    return canvas;
   }
 
   unload(): void {
@@ -131,10 +131,11 @@ export abstract class VirtualFile extends VirtualNode implements IVirtualFile {
       return;
     }
 
-    delete this.image.src;
-    this._unload(this._source);
-    this._source = null;
     this.isLoaded = false;
+    delete this.image;
+    let source = this._source;
+    this._source = null;
+    this._unload(source);
   }
 
   name: string;
