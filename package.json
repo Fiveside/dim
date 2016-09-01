@@ -10,7 +10,7 @@
   "scripts": {
     "start": "gulp",
     "dev": "gulp dev",
-    "launch": "npm i && typings i && gulp"
+    "setup": "npm i && typings i"
   },
   "author": "Erich Healy",
   "license": "MPL-2.0",
