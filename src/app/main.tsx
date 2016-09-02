@@ -12,11 +12,11 @@ function bootstrap() {
   let listener = getListener();
   let viewer = new Viewer();
 
-  listener.on("unload-viewer", () => {
+  listener.on("menu:unload-viewer", () => {
     viewer.unload();
   });
 
-  listener.on("open-file", async () => {
+  listener.on("menu:open-file", async () => {
     try {
       let files = await IPC.launchFileBrowser();
       viewer.load(files[0]);
@@ -25,13 +25,17 @@ function bootstrap() {
     }
   });
 
-  listener.on("open-folder", async () => {
+  listener.on("menu:open-folder", async () => {
     try {
       let folders = await IPC.launchFolderBrowser();
       viewer.load(folders[0]);
     } catch (err) {
       // do nothing!
     }
+  });
+
+  listener.on("menu:toggle-full-screen", () => {
+    IPC.toggleFullScreen();
   });
 
   // Starts react and mounts it.

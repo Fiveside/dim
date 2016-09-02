@@ -64,7 +64,7 @@ class FullScreenChecker extends IPCHandlerBase implements IPCHandler {
 class FullScreenSetter extends IPCHandlerBase implements IPCHandler {
   name = "set-full-screen";
   action(mode: boolean): Promise<void> {
-    this.browser.setAutoHideMenuBar(mode);
+    this.browser.setMenuBarVisibility(!mode);
     this.browser.setFullScreen(mode);
     return Promise.resolve();
   }
@@ -74,7 +74,7 @@ class FullScreenToggler extends IPCHandlerBase implements IPCHandler {
   name = "toggle-full-screen";
   action(): Promise<void> {
     let mode = !this.browser.isFullScreen();
-    this.browser.setAutoHideMenuBar(mode);
+    this.browser.setMenuBarVisibility(!mode);
     this.browser.setFullScreen(mode);
     return Promise.resolve();
   }
