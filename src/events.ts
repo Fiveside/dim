@@ -18,16 +18,20 @@ const EVENT_NAMES: Array<string> = [
 
 interface HostMessage {
   name: string;
-  // args: any[];
+  data: any;
+}
+
+export function sendEventToRenderProcess(bw: Electron.BrowserWindow, name: string, data: any) {
+  bw.webContents.send("host-event", <HostMessage>{
+    name: name,
+    data: data,
+  });
 }
 
 export function initEvents(bw: Electron.BrowserWindow) {
   for (let name of EVENT_NAMES) {
     bw.on(name, function() {
-      bw.webContents.send("host-event", <HostMessage>{
-        name: name,
-        // args: Array.prototype.slice.call(arguments),
-      });
+      sendEventToRenderProcess(bw, name, null);
     });
   }
 }

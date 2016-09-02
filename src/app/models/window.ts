@@ -1,4 +1,4 @@
-import {observable, computed} from "mobx";
+import {observable, computed, autorun} from "mobx";
 import {getListener} from "../../events";
 import IPC from "../../ipc";
 
@@ -11,6 +11,12 @@ class WindowStateTemplate {
 
   @observable isHtmlFullScreen: boolean = document.webkitIsFullScreen;
   @observable isHostFullScreen: boolean = false;
+
+  // The title of the window.
+  @observable title: string = "Dim";
+
+  // If for some reason we ever need to destroy this object, call all these
+  destructors: Array<() => void> = [];
 
   @computed
   get isFullScreen() {
@@ -34,6 +40,11 @@ class WindowStateTemplate {
     });
     // Initial value.
     IPC.isFullScreen().then((x) => this.isHostFullScreen = x);
+
+    // Configure the title to be set whenever its updated.
+    this.destructors.push(autorun(() => {
+      document.title = this.title;
+    }));
   }
 }
 

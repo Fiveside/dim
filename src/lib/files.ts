@@ -2,6 +2,7 @@ import * as yauzl from "yauzl";
 import {ZippedFile, ZipRoot, VirtualRoot, FSRoot, FSFile} from "./vfs";
 import * as Bluebird from "bluebird";
 import * as fs from "fs";
+import * as Path from "path";
 
 async function readZip(path: string): Promise<ZipRoot> {
   let zipfile: yauzl.ZipFile;
@@ -54,4 +55,19 @@ export async function readThing(path: string): Promise<VirtualRoot> {
     return await readFolder(path);
   }
   return await readZip(path);
+}
+
+async function exists(path: string): Promise<boolean> {
+  let stat: fs.Stats = await Bluebird.promisify(fs.lstat)(path);
+  return stat.isDirectory() || stat.isFile();
+}
+
+export async function getNameFromPath(path: string): Promise<string> {
+  // Assert that the file exists first.
+  if (!await exists(path)) {
+    // ¯\_(ツ)_/¯
+    return path;
+  }
+
+  return Path.basename(path);
 }

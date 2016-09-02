@@ -2,6 +2,7 @@
 import * as Electron from "electron";
 import {initIPCListeners} from "./ipc";
 import {initEvents} from "./events";
+import Menu from "./menu";
 
 // Module to control application life.
 const app = Electron.app;
@@ -35,6 +36,8 @@ function createWindow () {
 
   // Initialize the ipc subsystem
   initIPCListeners(mainWindow);
+
+  mainWindow.setMenu(Menu);
 }
 
 // This method will be called when Electron has finished

@@ -6,18 +6,15 @@ import ViewerModel from "./models/viewer";
 import Viewport from "./viewport";
 import {observer} from "mobx-react";
 import WindowState from "./models/window";
+import Title from "./title";
 const cx = require("classnames");
 
-interface IApplicationState {
+interface IApplicationProps {
   viewer: ViewerModel;
 }
 
 @observer
-export default class Application extends React.Component<any, IApplicationState> {
-
-  state: IApplicationState = {
-    viewer: new ViewerModel(),
-  };
+export default class Application extends React.Component<IApplicationProps, {}> {
 
   @autobind
   handleLoadFile(event: React.MouseEvent) {
@@ -33,27 +30,25 @@ export default class Application extends React.Component<any, IApplicationState>
     try {
       let files = await path;
       console.log("loading", files);
-      this.state.viewer.load(files[0]);
+      this.props.viewer.load(files[0]);
     } catch (err) {
       console.log("No file chosen");
     }
   }
 
-  @autobind
-  async handleUnload(event: React.MouseEvent) {
-    console.log("Unloading");
-    this.state.viewer.unload();
+  getTitle() {
+    let rootName = this.props.viewer.archiveName;
+    let filename = this.props.viewer.currentPage.name;
+    return `Dim <${rootName}> ${filename}`;
   }
 
   render() {
-    let btns = [
-      <button key="filePickerBtn_1" onClick={this.handleLoadFile}>Select File</button>,
-      <button key="filePickerBtn_2" onClick={this.handleLoadFolder}>Select Folder</button>,
-    ];
-    if (!this.state.viewer.isLoaded) {
+    if (!this.props.viewer.isLoaded) {
       return (
         <div className="top-menu">
-          {btns}
+          <Title title="Dim" />
+          <button key="filePickerBtn_1" onClick={this.handleLoadFile}>Select File</button>
+          <button key="filePickerBtn_2" onClick={this.handleLoadFolder}>Select Folder</button>
         </div>
       );
     }
@@ -63,12 +58,8 @@ export default class Application extends React.Component<any, IApplicationState>
     };
     return (
       <div className={cx(appClass)}>
-        <div className="top-menu">
-          {this.state.viewer.archivePath}
-          {btns}
-          <button onClick={this.handleUnload}>Unload</button>
-        </div>
-        <Viewport viewer={this.state.viewer} />
+        <Title title={this.getTitle()} />
+        <Viewport viewer={this.props.viewer} />
       </div>
     );
   }

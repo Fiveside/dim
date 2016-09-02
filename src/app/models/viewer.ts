@@ -9,7 +9,7 @@ export default class Viewer {
   // Default to a do-nothing so that methods don't die.
   @observable root: VirtualRoot = new VirtualRoot([]);
   @observable pages: PageCacher;
-  @observable archivePath: string = "";
+  @observable archiveName: string = "";
 
   @computed get pageNumber() {
     return this.pages.pageNum;
@@ -24,7 +24,8 @@ export default class Viewer {
     if (this.isLoaded) {
       this.unload();
     }
-    this.archivePath = archivePath;
+
+    this.archiveName = await Files.getNameFromPath(archivePath);
     this.root = await Files.readThing(archivePath);
 
     let ns = natsort({insensitive: true});
@@ -37,7 +38,7 @@ export default class Viewer {
   }
 
   unload() {
-    this.archivePath = "";
+    this.archiveName = "";
     this.root.unload();
     this.isLoaded = false;
     delete this.pages;
