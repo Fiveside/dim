@@ -51,9 +51,6 @@ body {
   height: 1.3rem;
 }
 
-.fullscreen .top-menu {
-  display: none;
-}
 .fullscreen .bottom-menu {
   display: none;
 }

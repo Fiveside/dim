@@ -2,6 +2,7 @@ import {observable, computed} from "mobx";
 import * as Files from "../../lib/files";
 import {VirtualRoot, IVirtualFile} from "../../lib/vfs";
 import {PageCacher} from "../../lib/page-cache";
+import * as Path from "path";
 const natsort = require("natsort");
 
 export default class Viewer {
@@ -9,6 +10,8 @@ export default class Viewer {
   // Default to a do-nothing so that methods don't die.
   @observable root: VirtualRoot = new VirtualRoot([]);
   @observable pages: PageCacher;
+
+  @observable archivePath: string = "";
   @observable archiveName: string = "";
 
   @computed get pageNumber() {
@@ -19,14 +22,11 @@ export default class Viewer {
     return this.root.length;
   }
 
-  // Resolves when the load has completed.
-  async load(archivePath: string) {
-    if (this.isLoaded) {
-      this.unload();
-    }
+  _setChapter(archivePath: string, root: VirtualRoot) {
+    this.archivePath = archivePath;
+    this.archiveName = Path.basename(archivePath);
 
-    this.archiveName = await Files.getNameFromPath(archivePath);
-    this.root = await Files.readThing(archivePath);
+    this.root = root;
 
     let ns = natsort({insensitive: true});
     let children = this.root.children.slice().sort((l, r) => {
@@ -37,8 +37,16 @@ export default class Viewer {
     this.isLoaded = true;
   }
 
+  // Resolves when the load has completed.
+  async load(archivePath: string) {
+    if (this.isLoaded) {
+      this.unload();
+    }
+
+    this._setChapter(archivePath, await Files.readThing(archivePath));
+  }
+
   unload() {
-    this.archiveName = "";
     this.root.unload();
     this.isLoaded = false;
     delete this.pages;
@@ -71,5 +79,34 @@ export default class Viewer {
     }
     this.pages.navPrev();
     return true;
+  }
+
+  async nextChapter(): Promise<boolean> {
+    console.log("nextChapter");
+    try {
+      let next = await Files.nextReadable(this.archivePath);
+      if (next != null) {
+        this._setChapter(next);
+      }
+      return next != null;
+    } catch (err) {
+      console.error("something happen", err);
+      return false;
+    }
+  }
+
+  async prevChapter(): Promise<boolean> {
+    console.log("prevChapter");
+    try {
+      let next = await Files.prevReadable(this.archivePath);
+      if (next != null) {
+        this._setChapter(next);
+      }
+      return next != null;
+    } catch (err) {
+      console.error("Something happen", err);
+      return false;
+    }
+
   }
 }

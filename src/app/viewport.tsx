@@ -16,6 +16,8 @@ interface IViewportRefs {
   renderer: Renderer;
 }
 
+type AmbiguousEvent = React.MouseEvent | KeyboardEvent;
+
 @observer
 export default class Viewport extends React.Component<IViewportProps, {}> {
 
@@ -39,13 +41,23 @@ export default class Viewport extends React.Component<IViewportProps, {}> {
   }
 
   @autobind
-  async handleNextClick(event: React.MouseEvent | KeyboardEvent) {
+  async handleNextClick(event: AmbiguousEvent) {
     this.props.viewer.nextPage();
   }
 
   @autobind
-  async handlePrevClick(event: React.MouseEvent | KeyboardEvent) {
+  async handlePrevClick(event: AmbiguousEvent) {
     this.props.viewer.previousPage();
+  }
+
+  @autobind
+  async handlePrevChapter(event: AmbiguousEvent) {
+
+  }
+
+  @autobind
+  async handleNextChapter(event: AmbiguousEvent) {
+    this.props.viewer.nextChapter();
   }
 
   render() {
@@ -58,9 +70,11 @@ export default class Viewport extends React.Component<IViewportProps, {}> {
                   onRightClick={this.handlePrevClick}
         />
         <div className="bottom-menu" >
+          <button onClick={this.handlePrevChapter}>Previous Chapter</button>
           <button onClick={this.handlePrevClick}>Previous Page</button>
           <span> {this.props.viewer.pageNumber + 1} of {this.props.viewer.pageTotal}</span>
           <button onClick={this.handleNextClick}>Next Page</button>
+          <button onClick={this.handleNextChapter}>Next Chapter</button>
         </div>
       </div>
     );

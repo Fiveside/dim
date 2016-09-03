@@ -4,7 +4,7 @@ import {sendEventToRenderProcess} from "./events";
 function announce(eventName: string) {
   return function(menuItem: Electron.MenuItem, bw: Electron.BrowserWindow) {
     sendEventToRenderProcess(bw, eventName, null);
-  }
+  };
 }
 
 const menu = Electron.Menu.buildFromTemplate([
