@@ -42,7 +42,6 @@ body {
 
   display: flex;
   flex-direction: column;
-  background-color: inherit;
 }
 
 .bottom-menu {

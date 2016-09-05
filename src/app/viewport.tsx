@@ -52,7 +52,7 @@ export default class Viewport extends React.Component<IViewportProps, {}> {
 
   @autobind
   async handlePrevChapter(event: AmbiguousEvent) {
-
+    this.props.viewer.prevChapter();
   }
 
   @autobind

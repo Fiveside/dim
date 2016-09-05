@@ -6,6 +6,19 @@ import * as Path from "path";
 
 const natsort = require("natsort");
 
+async function canReadArchive(filepath: string): Promise<boolean> {
+  let stat = await Bluebird.promisify(fs.stat)(filepath);
+  if (stat.isDirectory()) {
+    // TODO: check and see if the folder has any readable files in it.
+    return true;
+  }
+  if (Path.extname(filepath).toLowerCase() === ".zip") {
+    // TODO: same as above.
+    return true;
+  }
+  return false;
+}
+
 async function readZip(path: string): Promise<ZipRoot> {
   let zipfile: yauzl.ZipFile;
   try {
@@ -36,7 +49,10 @@ async function readZip(path: string): Promise<ZipRoot> {
     });
   });
 
-  return new ZipRoot(nodes, {zipFile: zipfile});
+  return new ZipRoot(nodes, {
+    zipFile: zipfile,
+    location: path,
+  });
 }
 
 async function readFolder(path: string): Promise<FSRoot> {
@@ -52,7 +68,7 @@ async function readFolder(path: string): Promise<FSRoot> {
 
 
 export async function readThing(path: string): Promise<VirtualRoot> {
-  let stat: fs.Stats = await Bluebird.promisify(fs.lstat)(path);
+  let stat: fs.Stats = await Bluebird.promisify(fs.stat)(path);
   if (stat.isDirectory()) {
     return await readFolder(path);
   }
@@ -60,7 +76,7 @@ export async function readThing(path: string): Promise<VirtualRoot> {
 }
 
 async function exists(path: string): Promise<boolean> {
-  let stat: fs.Stats = await Bluebird.promisify(fs.lstat)(path);
+  let stat: fs.Stats = await Bluebird.promisify(fs.stat)(path);
   return stat.isDirectory() || stat.isFile();
 }
 
@@ -76,35 +92,35 @@ export async function getNameFromPath(path: string): Promise<string> {
 
 async function getImmediateSiblings(path: string): Promise<Array<string>> {
   let base = Path.dirname(path);
-  let filename = Path.basename(path);
-  let rawSiblings = await Bluebird.promisify(fs.readdir)(base);
 
-  // TODO: filter the result based on whether or not we can actually read it.
+  let rawSiblings = await (Bluebird.promisify(fs.readdir)(base)
+    .map((x) => Path.join(base, x))
+    .filter(canReadArchive));
+
+  // Filter entries based on whether or not we can open em.
+  // Then sort them to align siblings.
   let siblings = rawSiblings.sort(natsort({insensitive: true}));
-  let idx = siblings.indexOf(filename);
+
+  let idx = siblings.indexOf(path);
 
   let prev = idx > 0 ? siblings[idx - 1] : null;
   let next = idx < siblings.length - 1 ? siblings[idx + 1] : null;
-  let immediates = [prev, next].map(x => {
-    if (x != null) {
-      return Path.join(base, x);
-    }
-    return null;
-  });
+  let immediates = [prev, next];
+
   console.log("Siblings", immediates);
   return immediates;
 }
 
-export async function nextReadable(path: string): Promise<VirtualRoot> {
-  let siblings = await getImmediateSiblings(path);
+export async function nextReadable(node: VirtualRoot): Promise<VirtualRoot> {
+  let siblings = await getImmediateSiblings(node.location);
   if (siblings[1] == null) {
     return null;
   }
   return await readThing(siblings[1]);
 }
 
-export async function prevReadable(path: string): Promise<VirtualRoot> {
-  let siblings = await getImmediateSiblings(path);
+export async function prevReadable(node: VirtualRoot): Promise<VirtualRoot> {
+  let siblings = await getImmediateSiblings(node.location);
   if (siblings[0] == null) {
     return null;
   }

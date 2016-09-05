@@ -18,12 +18,12 @@
 
 * Drag and drop to open a new file.
 
-* if you resize from the bottom right hand corner out then in, scrollbars appear.
-
-
 * Bottom slider should probably look something like #13 on this page
   https://htmlpreview.github.io/?https://github.com/angular-ui/ui-slider/master/demo/index.html
   Also include thumbnails on hover?
+
+* There's no good error handling for when we encounter a file type
+  we don't like.  Display errors properly.
 
 
 ======

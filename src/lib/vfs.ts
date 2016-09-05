@@ -6,20 +6,27 @@ import {observable, computed} from "mobx";
 const fileUrl = require("file-url");
 const path = require("path");
 import * as Drawing from "./drawing";
+import * as Path from "path";
 
 // Base class for a filesystem entry structure type thing.
 abstract class VirtualEntry {}
 
 export class VirtualRoot extends VirtualEntry {
+  location: string;
+  get name() {
+    return Path.basename(this.location);
+  }
+
   @observable children: Array<VirtualFile>;
 
   @computed get length(): number {
     return this.children.length;
   }
 
-  constructor(children: Array<VirtualFile>) {
+  constructor(children: Array<VirtualFile>, location: string) {
     super();
     this.children = children;
+    this.location = location;
   }
 
   unload(): void {
@@ -169,11 +176,12 @@ export class MemoryFile extends VirtualFile {
 
 interface IZipRootProps {
   zipFile: yauzl.ZipFile;
+  location: string;
 }
 export class ZipRoot extends VirtualRoot {
   zipFile: yauzl.ZipFile;
   constructor(children: Array<VirtualFile>, opts: IZipRootProps) {
-    super(children);
+    super(children, opts.location);
     this.zipFile = opts.zipFile;
   }
 
@@ -219,9 +227,8 @@ export class ZippedFile extends VirtualFile {
 
 export class FSRoot extends VirtualRoot {
   root: string;
-  constructor(children: VirtualFile[], root: string) {
-    super(children);
-    this.root = root;
+  constructor(children: VirtualFile[], location: string) {
+    super(children, location);
   }
 }
 

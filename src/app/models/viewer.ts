@@ -8,11 +8,8 @@ const natsort = require("natsort");
 export default class Viewer {
   @observable isLoaded: boolean = false;
   // Default to a do-nothing so that methods don't die.
-  @observable root: VirtualRoot = new VirtualRoot([]);
+  @observable root: VirtualRoot;
   @observable pages: PageCacher;
-
-  @observable archivePath: string = "";
-  @observable archiveName: string = "";
 
   @computed get pageNumber() {
     return this.pages.pageNum;
@@ -22,10 +19,7 @@ export default class Viewer {
     return this.root.length;
   }
 
-  _setChapter(archivePath: string, root: VirtualRoot) {
-    this.archivePath = archivePath;
-    this.archiveName = Path.basename(archivePath);
-
+  _setChapter(root: VirtualRoot) {
     this.root = root;
 
     let ns = natsort({insensitive: true});
@@ -43,7 +37,7 @@ export default class Viewer {
       this.unload();
     }
 
-    this._setChapter(archivePath, await Files.readThing(archivePath));
+    this._setChapter(await Files.readThing(archivePath));
   }
 
   unload() {
@@ -84,7 +78,7 @@ export default class Viewer {
   async nextChapter(): Promise<boolean> {
     console.log("nextChapter");
     try {
-      let next = await Files.nextReadable(this.archivePath);
+      let next = await Files.nextReadable(this.root);
       if (next != null) {
         this._setChapter(next);
       }
@@ -98,7 +92,7 @@ export default class Viewer {
   async prevChapter(): Promise<boolean> {
     console.log("prevChapter");
     try {
-      let next = await Files.prevReadable(this.archivePath);
+      let next = await Files.prevReadable(this.root);
       if (next != null) {
         this._setChapter(next);
       }
