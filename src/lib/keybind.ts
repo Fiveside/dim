@@ -7,6 +7,8 @@ const KEYBINDS: {[key: string]: string} = {
   "viewport.next_page": "right",
   "viewport.previous_page": "left",
   "viewport.fullscreen": "f",
+  "viewport.next_chapter": "alt right",
+  "viewport.prev_chapter": "alt left",
 };
 
 interface KeyboardEventHandler {(e?: KeyboardEvent): any; }

@@ -28,6 +28,8 @@ export default class Viewport extends React.Component<IViewportProps, {}> {
       "next_page": this.handleNextClick,
       "previous_page": this.handlePrevClick,
       "fullscreen": this.handleFullScreen,
+      "next_chapter": this.handleNextChapter,
+      "prev_chapter": this.handlePrevChapter,
     });
   }
 

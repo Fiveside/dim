@@ -13,9 +13,6 @@
   * Show 100%
   * Mouse wheel to scroll image when larger than window
 
-* Navigate to next or previous file
-  * Hotkey: alt+left, alt+right
-
 * Drag and drop to open a new file.
 
 * Bottom slider should probably look something like #13 on this page
