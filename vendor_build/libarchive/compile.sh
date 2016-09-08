@@ -29,4 +29,4 @@ cd .libs
 
 # Do not use a memory-init-file because we don't yet have a way of notifying
 # the user when the memory init file is loaded (we don't run main())
-emcc -O3 --memory-init-file 0 libarchive.a -o libarchive.js -s EXPORTED_FUNCTIONS="$TO_EXPORT"
+emcc -O3 --memory-init-file 0 libarchive.a -o libarchive.js -s EXPORTED_FUNCTIONS="$TO_EXPORT" -s RESERVED_FUNCTION_POINTERS=20
