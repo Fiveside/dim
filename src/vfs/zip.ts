@@ -3,6 +3,8 @@ import * as Bluebird from "bluebird";
 import * as pUtil from "../lib/promise";
 import * as Stream from "stream";
 import * as Events from "events";
+import * as fs from "fs";
+import * as _ from "lodash";
 const yauzl = require("yauzl");
 
 // Simple yauzl interfaces because its not in definately typed.
@@ -100,4 +102,54 @@ export class ZippedPage extends VirtualPage {
   _unload(source: string) {
     URL.revokeObjectURL(source);
   }
+}
+
+
+// Zip files can have the following magic bytes:
+const MAGIC = [
+  new Buffer([0x50, 0x4B, 0x03, 0x04]), // Normal zip archive
+  new Buffer([0x50, 0x4B, 0x05, 0x06]), // Empty archive (???)
+  new Buffer([0x50, 0x4B, 0x07, 0x08]), // Spanned archive (probably not supported right now)
+];
+
+export async function canRead(path: string): Promise<boolean> {
+  let testMagic = new Buffer(4);
+
+  let fd: number;
+  try {
+    // Need to do this manually because the typescript type system can't cope
+    // with promisifying it for some reason.
+    await new Promise((resolve, reject) => {
+      fs.open(path, "r", (err, readFd) => {
+        if (err != null) {
+          reject(err);
+          return;
+        }
+        fd = readFd;
+        resolve(readFd);
+      });
+    });
+
+    // Need to do this manually because there are 2 return parameters.
+    await new Promise((resolve, reject) => {
+      fs.read(fd, testMagic, 0, 4, 0, (err, bytesRead, buf) => {
+        if (err != null) {
+          reject(err);
+          return;
+        }
+        resolve(bytesRead);
+      });
+    });
+
+  } finally {
+    if (fd != null) {
+      fs.close(fd, function(err) {
+        if (err != null) {
+          console.error("Catastrophic failure!  This should never happen", err);
+        }
+      });
+    }
+  }
+
+  return _.some(MAGIC, (item) => item.equals(testMagic));
 }

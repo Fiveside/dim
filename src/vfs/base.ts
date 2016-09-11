@@ -76,6 +76,8 @@ export abstract class VirtualCollection extends VirtualEntry {
     this.pages = pages.slice().sort((l, r) => {
       return ns(l.name, r.name);
     });
+
+    this.jumpPage(0);
   }
 
   unload(): void {
@@ -108,6 +110,8 @@ export abstract class VirtualCollection extends VirtualEntry {
       Math.max(this.pageNum - 1, 0)
     ).reverse();
 
+    // Load pages that require it in a mildly smart way.
+    // First the current page, Then the next page,
     await this.currentPage.load();
 
     // Load all subsequent pages.

@@ -38,7 +38,12 @@ export default class Application extends React.Component<IApplicationProps, {}> 
 
   getTitle() {
     let rootName = this.props.viewer.chapter.name;
-    let filename = this.props.viewer.currentPage.name;
+
+    let filename = "";
+    if (this.props.viewer.currentPage != null) {
+      filename = this.props.viewer.currentPage.name;
+    }
+
     return `Dim <${rootName}> ${filename}`;
   }
 

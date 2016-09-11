@@ -20,6 +20,7 @@ export default class Viewer {
   }
 
   _setChapter(pages: VFS.VirtualCollection) {
+    console.log("Loading chapter", pages.name);
     this.chapter = pages;
     this.isLoaded = true;
   }
@@ -69,7 +70,6 @@ export default class Viewer {
   }
 
   async nextChapter(): Promise<boolean> {
-    console.log("nextChapter");
     try {
       let next = await VFS.nextReadable(this.chapter);
       if (next != null) {
@@ -83,7 +83,6 @@ export default class Viewer {
   }
 
   async prevChapter(): Promise<boolean> {
-    console.log("prevChapter");
     try {
       let next = await VFS.prevReadable(this.chapter);
       if (next != null) {

@@ -11,34 +11,22 @@ export * from "./base";
 export * from "./zip";
 export * from "./local";
 
-// export const VirtualCollection = Base.VirtualCollection;
-// export const VirtualPage = Base.VirtualPage;
-// export const ZipCollection = Zip.ZipCollection;
-// export const ZipPage = Zip.ZippedPage;
-// export const FSCollection = Local.FSCollection;
-// export const FSPage = Local.FSPage;
-
-// export interface IVirtualPage extends Base.IVirtualPage {};
-
 async function canReadArchive(filepath: string): Promise<boolean> {
   let stat = await Bluebird.promisify(fs.stat)(filepath);
   if (stat.isDirectory()) {
     // TODO: check and see if the folder has any readable files in it.
     return true;
   }
-  if (Path.extname(filepath).toLowerCase() === ".zip") {
-    // TODO: same as above.
-    return true;
-  }
-  return false;
+
+  // Zip check.
+  return await Zip.canRead(filepath);
 }
 
-async function getImmediateSiblings(path: string): Promise<Array<string>> {
+async function getImmediateSiblings(path: string): Promise<Array<Array<string>>> {
   let base = Path.dirname(path);
 
   let rawSiblings = await (Bluebird.promisify(fs.readdir)(base)
-    .map((x) => Path.join(base, x))
-    .filter(canReadArchive));
+    .map((x) => Path.join(base, x)));
 
   // Filter entries based on whether or not we can open em.
   // Then sort them to align siblings.
@@ -46,11 +34,11 @@ async function getImmediateSiblings(path: string): Promise<Array<string>> {
 
   let idx = siblings.indexOf(path);
 
-  let prev = idx > 0 ? siblings[idx - 1] : null;
-  let next = idx < siblings.length - 1 ? siblings[idx + 1] : null;
+  let prev = siblings.slice(0, idx).reverse();
+  let next = siblings.slice(idx + 1);
   let immediates = [prev, next];
 
-  console.log("Siblings", immediates);
+  console.log("Siblings", immediates[0][0], immediates[1][0]);
   return immediates;
 }
 
@@ -63,17 +51,23 @@ export async function readThing(path: string): Promise<Base.VirtualCollection> {
 }
 
 export async function nextReadable(node: Base.VirtualCollection): Promise<Base.VirtualCollection> {
-  let siblings = await getImmediateSiblings(node.location);
-  if (siblings[1] == null) {
-    return null;
+  let [prev, next] = await getImmediateSiblings(node.location);
+
+  for (let x of next) {
+    if (await canReadArchive(x)) {
+      return readThing(x);
+    }
   }
-  return await readThing(siblings[1]);
+  return null;
 }
 
 export async function prevReadable(node: Base.VirtualCollection): Promise<Base.VirtualCollection> {
-  let siblings = await getImmediateSiblings(node.location);
-  if (siblings[0] == null) {
-    return null;
+  let [prev, next] = await getImmediateSiblings(node.location);
+
+  for (let x of prev) {
+    if (await canReadArchive(x)) {
+      return readThing(x);
+    }
   }
-  return await readThing(siblings[0]);
+  return null;
 }
