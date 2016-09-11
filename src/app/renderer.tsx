@@ -16,6 +16,7 @@ interface IRendererProps {
 interface ICanvasRendererRefs {
   [key: string]: React.ReactInstance;
   canvas: HTMLCanvasElement;
+  container: HTMLDivElement;
 }
 
 @observer
@@ -65,7 +66,8 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
     }
 
     let canvas = this.refs.canvas;
-    let bbox = canvas.getBoundingClientRect();
+    let bbox = this.refs.container.getBoundingClientRect();
+
     canvas.width = bbox.width;
     canvas.height = bbox.height;
 
@@ -99,11 +101,14 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
 
   render() {
     this.paint();
-    return <canvas ref="canvas"
-                   onContextMenu={this.onContextMenu}
-                   onMouseDown={this.onMouseDown}
-                   onClick={this.onClick}
-                   className={this.props.className}
-    />;
+    return (
+      <div className={this.props.className} ref="container">
+        <canvas ref="canvas"
+                onContextMenu={this.onContextMenu}
+                onMouseDown={this.onMouseDown}
+                onClick={this.onClick}
+        />;
+      </div>
+    );
   }
 }

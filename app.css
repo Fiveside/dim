@@ -8,9 +8,6 @@ body {
 .image-container {
   width: 100%;
   height: 100%;
-
-  box-sizing: border-box;
-  padding-bottom: 1.3rem;
 }
 
 .application {
@@ -31,6 +28,9 @@ body {
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
+
+  width: 100%;
+  background-color: #111111;
 }
 
 .viewport {
@@ -38,6 +38,9 @@ body {
 
   display: flex;
   flex-direction: column;
+
+  box-sizing: border-box;
+  padding-bottom: 1.3rem;
 }
 
 .bottom-menu {
