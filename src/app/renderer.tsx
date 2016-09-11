@@ -1,6 +1,6 @@
 import * as React from "react";
 import {observer} from "mobx-react";
-import {IVirtualFile} from "../lib/vfs";
+import {IVirtualPage} from "../vfs";
 import {autobind} from "core-decorators";
 import {throttleAnimationFrame} from "../lib/util";
 import {autorun} from "mobx";
@@ -8,7 +8,7 @@ import * as Drawing from "../lib/drawing";
 
 interface IRendererProps {
   className: string;
-  file: IVirtualFile;
+  file: IVirtualPage;
   onLeftClick: {(e: React.MouseEvent): any};
   onRightClick: {(e: React.MouseEvent): any};
 }

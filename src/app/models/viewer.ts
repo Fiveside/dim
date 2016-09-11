@@ -1,33 +1,26 @@
 import {observable, computed} from "mobx";
-import * as Files from "../../lib/files";
-import {VirtualRoot, IVirtualFile} from "../../lib/vfs";
-import {PageCacher} from "../../lib/page-cache";
+// import * as Files from "../../lib/files";
+// import {VirtualCollection, VirtualPage, IVirtualPage} from "../../vfs/base";
+// import {PageCacher} from "../../lib/page-cache";
 import * as Path from "path";
-const natsort = require("natsort");
+// const natsort = require("natsort");
+import * as VFS from "../../vfs";
 
 export default class Viewer {
   @observable isLoaded: boolean = false;
   // Default to a do-nothing so that methods don't die.
-  @observable root: VirtualRoot;
-  @observable pages: PageCacher;
+  @observable chapter: VFS.VirtualCollection;
 
   @computed get pageNumber() {
-    return this.pages.pageNum;
+    return this.chapter.pageNum;
   }
 
   @computed get pageTotal(): number {
-    return this.root.length;
+    return this.chapter.length;
   }
 
-  _setChapter(root: VirtualRoot) {
-    this.root = root;
-
-    let ns = natsort({insensitive: true});
-    let children = this.root.children.slice().sort((l, r) => {
-      return ns(l.name, r.name);
-    });
-
-    this.pages = new PageCacher(children);
+  _setChapter(pages: VFS.VirtualCollection) {
+    this.chapter = pages;
     this.isLoaded = true;
   }
 
@@ -37,48 +30,48 @@ export default class Viewer {
       this.unload();
     }
 
-    this._setChapter(await Files.readThing(archivePath));
+    this._setChapter(await VFS.readThing(archivePath));
   }
 
   unload() {
-    this.root.unload();
+    this.chapter.unload();
     this.isLoaded = false;
-    delete this.pages;
+    delete this.chapter;
   }
 
-  @computed get currentPage(): IVirtualFile {
-    return this.pages.currentPage;
+  @computed get currentPage(): VFS.IVirtualPage {
+    return this.chapter.currentPage;
   }
 
   setPage(pageNum: number): boolean {
     // Assert that we can first.
-    if (this.root.length <= pageNum || pageNum < 0) {
+    if (this.chapter.length <= pageNum || pageNum < 0) {
       return false;
     }
-    this.pages.jumpPage(pageNum);
+    this.chapter.jumpPage(pageNum);
     return true;
   }
 
   nextPage(): boolean {
-    if (this.pages.pageNum + 1 >= this.root.length) {
+    if (this.chapter.pageNum + 1 >= this.chapter.length) {
       return false;
     }
-    this.pages.navNext();
+    this.chapter.navNext();
     return true;
   }
 
   previousPage(): boolean {
-    if (this.pages.pageNum <= 0) {
+    if (this.chapter.pageNum <= 0) {
       return false;
     }
-    this.pages.navPrev();
+    this.chapter.navPrev();
     return true;
   }
 
   async nextChapter(): Promise<boolean> {
     console.log("nextChapter");
     try {
-      let next = await Files.nextReadable(this.root);
+      let next = await VFS.nextReadable(this.chapter);
       if (next != null) {
         this._setChapter(next);
       }
@@ -92,7 +85,7 @@ export default class Viewer {
   async prevChapter(): Promise<boolean> {
     console.log("prevChapter");
     try {
-      let next = await Files.prevReadable(this.root);
+      let next = await VFS.prevReadable(this.chapter);
       if (next != null) {
         this._setChapter(next);
       }

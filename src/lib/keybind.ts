@@ -1,7 +1,7 @@
-import * as Keypress from "keypress";
 import {autobind} from "core-decorators";
 import * as React from "react";
 import * as _ from "lodash";
+const Keypress = require("keypress");
 
 const KEYBINDS: {[key: string]: string} = {
   "viewport.next_page": "right",
