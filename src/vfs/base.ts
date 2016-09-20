@@ -82,6 +82,7 @@ export abstract class VirtualCollection extends VirtualEntry {
 
   unload(): void {
     // GC all children.
+    // This collection should be unusable after this.
     this.pages.forEach(child => child.unload());
   }
 
@@ -205,7 +206,10 @@ export abstract class VirtualPage extends VirtualEntry implements IVirtualPage {
     this.name = opts.name;
   }
 
+  // Should return a url that we can open (blob urls work too.)
   async abstract _load(): Promise<string>;
+
+  // Accepts the url returned from _load and cleans up any stray resources
   abstract _unload(source: string): any | void;
 
   _transitionComplete() {

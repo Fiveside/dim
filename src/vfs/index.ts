@@ -2,6 +2,7 @@
 import * as Base from "./base";
 import * as Zip from "./zip";
 import * as Local from "./local";
+import * as Archive from "./archive";
 import * as Path from "path";
 import * as Bluebird from "bluebird";
 import * as fs from "fs";
@@ -10,6 +11,7 @@ const natsort = require("natsort");
 export * from "./base";
 export * from "./zip";
 export * from "./local";
+export * from "./archive";
 
 async function canReadArchive(filepath: string): Promise<boolean> {
   let stat = await Bluebird.promisify(fs.stat)(filepath);
@@ -47,7 +49,8 @@ export async function readThing(path: string): Promise<Base.VirtualCollection> {
   if (stat.isDirectory()) {
     return await Local.FSCollection.openFolder(path);
   }
-  return await Zip.ZipCollection.openZip(path);
+  // return await Zip.ZipCollection.openZip(path);
+  return await Archive.ArchiveCollection.openArchive(path);
 }
 
 export async function nextReadable(node: Base.VirtualCollection): Promise<Base.VirtualCollection> {

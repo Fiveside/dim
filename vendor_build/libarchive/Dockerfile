@@ -18,3 +18,4 @@ ADD https://github.com/libarchive/libarchive/archive/v3.2.0.tar.gz /work/
 COPY compile.sh /work/
 COPY exported.js /work/
 COPY libarchive-3.2.0.patch /work/
+COPY pre.js /work/

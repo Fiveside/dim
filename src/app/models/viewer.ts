@@ -1,9 +1,5 @@
 import {observable, computed} from "mobx";
-// import * as Files from "../../lib/files";
-// import {VirtualCollection, VirtualPage, IVirtualPage} from "../../vfs/base";
-// import {PageCacher} from "../../lib/page-cache";
 import * as Path from "path";
-// const natsort = require("natsort");
 import * as VFS from "../../vfs";
 
 export default class Viewer {

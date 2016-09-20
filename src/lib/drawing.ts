@@ -1,4 +1,4 @@
-const Pica = require("pica");
+// const Pica = require("pica");
 
 interface Target {
   // Location of the thing on the canvas.
@@ -45,16 +45,17 @@ export async function fit(canvas: HTMLCanvasElement, source: DrawSource) {
   picaCanvas.width = target.width;
   picaCanvas.height = target.height;
 
-  await new Promise((resolve, reject) => {
-    Pica.resizeCanvas(source, picaCanvas, {quality: 2}, function(err: string) {
-      if (err != null) {
-        reject(err);
-        return;
-      }
-      ctx.drawImage(picaCanvas, target.x, target.y);
-      resolve();
-    });
-  });
+  ctx.drawImage(source, target.x, target.y, target.width, target.height);
+  // await new Promise((resolve, reject) => {
+  //   Pica.resizeCanvas(source, picaCanvas, {quality: 2}, function(err: string) {
+  //     if (err != null) {
+  //       reject(err);
+  //       return;
+  //     }
+  //     ctx.drawImage(picaCanvas, target.x, target.y);
+  //     resolve();
+  //   });
+  // });
 }
 
 // Resizes the canvas to the dimensions of the image and paints it directly.

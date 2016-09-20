@@ -9,26 +9,35 @@ gulp.task("dev", ["clean"], () => gulp.run(["watch", "launch"]));
 gulp.task("package", ["clean"], () => gulp.run(["static", "compile"]));
 
 const PATHS = {
-  static: [
+  staticSrc: [
     "package.json",
     "index.html",
     "app.css",
   ],
-  project: "tsconfig.json",
   build: "build",
+  staticDest: "build",
+  vendorSrc: ["src/vendor/**/*.js"],
+  vendorDest: "build/vendor",
+  project: "tsconfig.json",
 };
 
 gulp.task("clean", () => {
   return del("build");
 });
 
-gulp.task("static", () => {
-  return gulp.src(PATHS.static)
-  .pipe(gulp.dest(PATHS.build));
+gulp.task("static", ["static:assets", "static:vendor"]);
+gulp.task("static:assets", () => {
+  return gulp.src(PATHS.staticSrc)
+  .pipe(gulp.dest(PATHS.staticDest));
+});
+gulp.task("static:vendor", () => {
+  return gulp.src(PATHS.vendorSrc)
+  .pipe(gulp.dest(PATHS.vendorDest));
 });
 
 gulp.task("watch", ["static", "compile"], () => {
-  gulp.watch(PATHS.static, ["static"]);
+  gulp.watch(PATHS.staticSrc, ["static:assets"]);
+  gulp.watch(PATHS.vendorSrc, ["static:vendor"]);
   gulp.watch("src/**/*", ["compile"]);
 });
 
