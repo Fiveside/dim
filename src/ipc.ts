@@ -38,7 +38,7 @@ class LaunchFileBrowser extends LaunchBrowser implements IPCHandler {
   getDialogOptions(): Electron.OpenDialogOptions {
     return {
       filters: [
-        {name: "Archives", extensions: ["zip", "cbz"]},
+        {name: "Archives", extensions: ["zip", "cbz", "rar", "cbr"]},
         {name: "All Files", extensions: ["*"]},
       ],
       properties: ["openFile"],

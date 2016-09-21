@@ -1,6 +1,8 @@
 import {VirtualCollection, VirtualPage, IVirtualPageProps} from "./base";
 import * as Bluebird from "bluebird";
 import * as fs from "fs";
+import * as crypto from "crypto";
+
 const ARC = require("../vendor/libarchive-3.2.0");
 
 // TODO:
@@ -19,6 +21,17 @@ const ARCHIVE = {
   FAILED: -25,
   FATAL: -30,
 };
+
+const AE = {
+  IFMT:   0xF000, // 0170000,
+  IFREG:  0x8000, // 0100000,
+  IFLNK:  0xA000, // 0120000,
+  IFSOCK: 0xC000, // 0140000,
+  IFCHR:  0x2000, // 0020000,
+  IFBLK:  0x6000, // 0060000,
+  IFDIR:  0x4000, // 0040000,
+  IFIFO:  0x1000, // 0010000,
+}
 
 // Some #DEFINE values from stdio.h
 const SEEK = {
@@ -46,7 +59,7 @@ type EmPtr = number;
 
 // Creating a unique signature to identify collections from within the
 // emscripten module.
-let _sigCounter: number = 0;
+let _sigCounter: number = 1;
 function createSig() {
   return _sigCounter++;
 }
@@ -57,7 +70,7 @@ function createSig() {
 // to an emscripten compiled module.  Objects should register themselves here
 const CALLBACK_REGISTRY = new Map<number, ArchiveController>();
 
-function arcRead(a: EmPtr, clientData: EmPtr, buf: EmPtr): Number {
+function arcRead(a: EmPtr, clientData: EmPtr, buff: EmPtr): number {
   // struct archive *a, void *clientData, void **buf
   // return ssize_t
 
@@ -75,23 +88,24 @@ function arcRead(a: EmPtr, clientData: EmPtr, buf: EmPtr): Number {
   }
 
   // Read either to the length of the buffer or to the end of the file.
-  let end = Math.min(col.arcBuf.length, col.readOffset + col.buf.length);
+  let end = Math.min(col.arcBuf.length, col.readPos + col.buf.length);
 
   // Cache some stuff to avoid . lookups
-  let readPtr = col.readOffset;
-  let colBuf = col.buf;
+  let readPos = col.readPos;
+  let buf = col.buf;
   let arcBuf = col.arcBuf;
   let i = 0;
-  for (; i < end - readPtr; ++i) {
-    colBuf[i] = arcBuf[readPtr + i];
+  for (; i < end - readPos; ++i) {
+    buf[i] = arcBuf[readPos + i];
   }
-  col.readOffset += i;
 
-  ARC.setValue(buf, col.bufLoc, "*");
+  col.readPos += i;
+
+  ARC.setValue(buff, col.bufLoc, "*");
   return i;
 }
 
-function arcSeek(a: EmPtr, clientData: EmPtr, offsetLo: number, offsetHi: number, whence: number) {
+function arcSeek(a: EmPtr, clientData: EmPtr, offsetLo: number, offsetHi: number, whence: number): number {
   // struct archive *a, void *clientData, int64_t offset, int whence
   // return int64_t
 
@@ -106,13 +120,13 @@ function arcSeek(a: EmPtr, clientData: EmPtr, offsetLo: number, offsetHi: number
     return ARCHIVE.FATAL;
   }
 
-  let newOffset = col.readOffset;
+  let newOffset = 0;
   switch (whence) {
     case SEEK.SET:
       newOffset = offsetLo;
       break;
     case SEEK.CUR:
-      newOffset += offsetLo;
+      newOffset = col.readPos + offsetLo;
       break;
     case SEEK.END:
       newOffset = col.arcBuf.length + offsetLo;
@@ -122,9 +136,14 @@ function arcSeek(a: EmPtr, clientData: EmPtr, offsetLo: number, offsetHi: number
       return ARCHIVE.FATAL;
   }
 
-  col.readOffset = newOffset;
+  if (newOffset > col.arcBuf.length) {
+    console.warn("Libarchive tried to seek somewhere strange");
+    return ARCHIVE.FAILED;
+  }
+
+  col.readPos = newOffset;
   ARC.Runtime.setTempRet0(0);
-  return col.readOffset;
+  return col.readPos;
 }
 
 function arcClose(a: EmPtr, clientData: EmPtr): number {
@@ -167,7 +186,7 @@ interface IArchiveControllerProps {
 class ArchiveController {
   // Buffer location for scratch data.
   // These are set by the libarchive callbacks.
-  get bufSize() { return 4096; };
+  get bufSize() { return 1024; };
   bufLoc: EmPtr;
   buf: Uint8Array;
 
@@ -185,19 +204,21 @@ class ArchiveController {
 
   // The read offset for the current virutal file descriptor.
   // TODO: rewrite this as int64_t
-  readOffset: number = 0;
+  readPos: number = 0;
   arcBuf: Buffer;
 
   // Flags describing the internal libarchive state.
-  isOpen: false;
+  isOpen: boolean = false;
 
   constructor(opts: IArchiveControllerProps) {
     this.arcBuf = opts.archive;
-    this.bufLoc = ARC._malloc(Uint32Array.BYTES_PER_ELEMENT * this.bufSize);
+    // debugger;
+    this.bufLoc = ARC._malloc(this.bufSize);
     this.buf = new Uint8Array(ARC.HEAPU8.buffer, this.bufLoc, this.bufSize);
   }
 
   destroy(): void {
+    console.log("Destroying");
     if (ARC._archive_read_finish(this.archive) !== ARCHIVE.OK) {
       console.warn("Libarchive reported error while closing: ", getError(this.archive));
     }
@@ -212,12 +233,13 @@ class ArchiveController {
     if (this.isOpen) {
       this.close();
     }
+
     // Opens the archive
     this.archive = ARC._archive_read_new();
     ARC._archive_read_support_compression_all(this.archive);
     ARC._archive_read_support_format_all(this.archive);
     ARC._archive_read_set_seek_callback(this.archive, arcSeekPtr);
-    ARC._archive_read_open(
+    let err = ARC._archive_read_open(
       this.archive,
       this.sig,
       arcOpenPtr,
@@ -225,13 +247,20 @@ class ArchiveController {
       arcClosePtr,
     );
 
-    let err = ARC._archive_read_next_header(this.archive, this.archiveEntryPtr);
+    if (err !== ARCHIVE.OK) {
+      console.error("Libarchive failed to open file", getError(this.archive));
+      throw new TypeError("libarchive failed to read archive");
+    }
+
+    err = ARC._archive_read_next_header(this.archive, this.archiveEntryPtr);
     if (err === ARCHIVE.EOF) {
       console.error("Archive is empty!");
       throw new TypeError("Archive is empty!");
     } else if (err !== ARCHIVE.OK) {
       console.error("Libarchive failed to read header", getError(this.archive));
     }
+
+    this.isOpen = true;
   }
 
   close(): void {
@@ -241,6 +270,10 @@ class ArchiveController {
     if (ARC._archive_read_finish(this.archive) !== ARCHIVE.OK) {
       console.error("Libarchive failed to close file ???", getError(this.archive));
     }
+
+    // Book-keeping
+    this.readPos = 0;
+    this.isOpen = false;
   }
 
   getEntryName(): string {
@@ -262,13 +295,22 @@ class ArchiveController {
     }
   }
 
-  collectHeaderInfo(): Array<string> {
+  collectFileNames(): Array<string> {
     this.close();
     this.open();
 
     let headers: Array<string> = [];
     while (true) {
-      headers.push(this.getEntryName());
+      // Only add files.
+      let ftype = ARC._archive_entry_filetype(this.archiveEntry);
+      if ((ftype & AE.IFDIR) === 0) {
+        // Sanity checking
+        if (ARC._archive_entry_size(this.archiveEntry) <= 0) {
+          console.error("File is not a directory but file is empty?");
+          debugger;
+        }
+        headers.push(this.getEntryName());
+      }
       let err = ARC._archive_read_next_header(this.archive, this.archiveEntryPtr);
       if (err === ARCHIVE.EOF) {
         break;
@@ -309,36 +351,13 @@ class ArchiveController {
       bufs.push(mount.slice());
     }
 
-    // // Concat into a single arraybuffer and copy out of emscripten land.
-    // let dataSize = bufs.map(x => x.length).reduce((l, r) => l + r, 0);
-    // let data = new Uint8Array(dataSize);
-    // let pos = 0;
-    // for (let buf of bufs) {
-    //   data.set(buf, pos);
-    //   pos += buf.length;
-    // }
-
     freePtr(entryBufPtr);
     freePtr(sizePtr);
     freePtr(offsetPtr);
 
     this.nextHeader();
 
-    // return data.buffer;
     return bufs;
-  }
-
-  setFile(filename: string) {
-    let headerPtr = mallocPtr();
-
-    while (true) {
-      let err = ARC._archive_read_next_header(this.archive, headerPtr);
-      if (err === ARCHIVE.EOF) {
-        // cycle the archive.
-      } else if (err !== ARCHIVE.OK) {
-        console.error("Libarchive failed to read header", getError(this.archive));
-      }
-    }
   }
 }
 
@@ -364,7 +383,7 @@ export class ArchiveCollection extends VirtualCollection {
     CALLBACK_REGISTRY.set(controller.sig, controller);
     controller.open();
 
-    let pages = controller.collectHeaderInfo().map((name) => {
+    let pages = controller.collectFileNames().map((name) => {
       return new ArchivePage({
         controller: controller,
         name: name,
@@ -389,7 +408,8 @@ export class ArchivePage extends VirtualPage {
     while (this.controller.getEntryName() !== this.name) {
       this.controller.nextHeader();
     }
-    let data = new Blob(this.controller.readData());
+    let rawData = this.controller.readData();
+    let data = new Blob(rawData);
     let url = URL.createObjectURL(data);
     return url;
   }

@@ -35,6 +35,7 @@ emcc -O3 \
   --memory-init-file 0 \
   libarchive.a \
   -o libarchive.js \
+  --pre-js "$root/pre.js" \
   -s EXPORTED_FUNCTIONS="$TO_EXPORT" \
-  -s RESERVED_FUNCTION_POINTERS=20\
-  --pre-js "$root/pre.js"
+  -s RESERVED_FUNCTION_POINTERS=20 \
+  -s ASSERTIONS=2

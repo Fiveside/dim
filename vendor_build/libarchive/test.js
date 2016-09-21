@@ -1,6 +1,6 @@
 const arc = require("./libarchive");
 const fs = require("fs");
-const Int64 = require("node-int64");
+const crypto = require("crypto");
 
 let rar = fs.readFileSync("test.rar");
 // rarLoc = arc._malloc(rar.length + 1)
@@ -32,12 +32,12 @@ function myread(aa, clientData, buff) {
 
   let end = Math.min(rar.length, rarPos + buf.length);
   let i = 0;
-  let cpy = [];
   for (; i < end - rarPos; i++) {
-    cpy.push([rarPos+i, rar[rarPos+i]]);
     buf[i] = rar[rarPos + i];
   }
   rarPos += i;
+
+  console.log("Read md5", crypto.createHash("md5").update(buf).digest("hex"));
 
   arc.setValue(buff, bufLoc, "*");
   return i;
@@ -68,9 +68,9 @@ function myseek(aa, clientData, offsetLo, offsetHi, whence) {
   // supposed to return then?
 
   // Just pretending the most significant 32 bits don"t exist for now
-  let fused = new Int64(offsetHi, offsetLo);
+  // let fused = new Int64(offsetHi, offsetLo);
 
-  console.log("mySeek", arguments, fused.toOctetString());
+  // console.log("mySeek", arguments, fused.toOctetString());
   var newOffset;
   if (whence === 0) {
     newOffset = offsetLo;
@@ -89,7 +89,7 @@ function myseek(aa, clientData, offsetLo, offsetHi, whence) {
   }
 
   // Emscripten int64_t ¯\_(ツ)_/¯
-  console.log("Seeked to", newOffset);
+  console.log("Seeked to", newOffset, [offsetLo, whence]);
   rarPos = newOffset;
   arc.Runtime.setTempRet0(0);
   return rarPos;
@@ -105,7 +105,8 @@ let myReadPtr = arc.Runtime.addFunction(myread);
 let myClosePtr = arc.Runtime.addFunction(myclose);
 let mySeekPtr = arc.Runtime.addFunction(myseek);
 arc._archive_read_set_seek_callback(a, mySeekPtr);
-arc._archive_read_open(a, 12345, null, myReadPtr, myClosePtr);
+let openErr = arc._archive_read_open(a, 12345, null, myReadPtr, myClosePtr);
+console.log("Open err", openErr);
 
 // free() this.
 let entryPtr = arc._malloc(Uint32Array.BYTES_PER_ELEMENT);
