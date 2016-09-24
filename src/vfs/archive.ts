@@ -340,6 +340,9 @@ class ArchiveController {
 
       if (ret === ARCHIVE.EOF) {
         break;
+      } else if (ret !== ARCHIVE.OK) {
+        console.error("Failed to extract data.", getError(this.archive));
+        throw new TypeError("Failed to extract data " + getError(this.archive));
       }
 
       let entryBuf = deref(entryBufPtr);
@@ -405,8 +408,15 @@ export class ArchivePage extends VirtualPage {
   }
 
   async _load(): Promise<string> {
+    let firstEntry = this.controller.getEntryName();
+    let first = true;
     while (this.controller.getEntryName() !== this.name) {
+      if (!first && this.controller.getEntryName() === firstEntry) {
+        console.log("Loop detected?!");
+        debugger;
+      }
       this.controller.nextHeader();
+      first = false;
     }
     let rawData = this.controller.readData();
     let data = new Blob(rawData);

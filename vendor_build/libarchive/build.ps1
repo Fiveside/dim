@@ -9,7 +9,7 @@ $containerName = (docker run -dit build_libarchive /work/compile.sh | Out-String
 # Wait for command to finish running.
 docker attach "$containerName"
 
-$sourceLibs = "${containerName}:/work/libarchive/.libs"
+$sourceLibs = "${containerName}:/work"
 if (!(Test-Path -Path "libs")) {
   mkdir libs
 }
