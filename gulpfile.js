@@ -12,6 +12,7 @@ const PATHS = {
   staticSrc: [
     "package.json",
     "index.html",
+    "test.html",
     "app.css",
   ],
   build: "build",

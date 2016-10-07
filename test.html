@@ -1,0 +1,132 @@
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.3.2/gl-matrix-min.js"></script>
+  </head>
+  <body>
+    <canvas width=800 height=600 />
+    <script>
+      const VERTEX_SHADER = `
+        attribute vec3 aVertexPosition;
+
+        uniform mat4 uMVMatrix;
+        uniform mat4 uPMatrix;
+
+        void main(void) {
+          gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        }
+      `;
+
+      const FRAGMENT_SHADER = `
+        precision mediump float;
+
+        void main(void) {
+          gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        }
+      `;
+
+      function createShader(gl, shaderSource, shaderType) {
+        let shader = gl.createShader(shaderType);
+        gl.shaderSource(shader, shaderSource);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          console.log("shader info log");
+          console.log(gl.getShaderInfoLog(shader));
+          console.error("Failed to compile shader");
+          return;
+        }
+        return shader;
+      }
+
+      document.addEventListener("DOMContentLoaded", function() {
+        "use strict";
+
+        let canvas = document.getElementsByTagName("canvas")[0];
+        console.log("canvas", canvas)
+
+        let gl = canvas.getContext('experimental-webgl');
+        gl.viewportWidth = canvas.width;
+        gl.viewportHeight = canvas.height;
+
+        let program = gl.createProgram();
+        let fragShader = createShader(gl, FRAGMENT_SHADER, gl.FRAGMENT_SHADER);
+        let vertShader = createShader(gl, VERTEX_SHADER, gl.VERTEX_SHADER);
+        gl.attachShader(program, fragShader);
+        gl.attachShader(program, vertShader);
+        gl.linkProgram(program);
+
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          console.log(gl.getProgramInfoLog(program));
+          console.error("Failed to initialize shaders");
+          return;
+        }
+
+        gl.useProgram(program);
+        program.vertexPositionAttribute = gl.getAttribLocation(program, "aVertexPosition");
+        gl.enableVertexAttribArray(program.vertexPositionAttribute);
+
+        program.pMatrixUniform = gl.getUniformLocation(program, "uPMatrix");
+        program.mvMatrixUniform = gl.getUniformLocation(program, "uMVMatrix");
+
+        // Sending data to the graphics card.
+        let triangleVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+        let triangleVertices = [
+           0,  1, 0,
+          -1, -1, 0,
+           1, -1, 0,
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
+        triangleVertexPositionBuffer.itemSize = 3;
+        triangleVertexPositionBuffer.numItems = 3;
+
+        let squareVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+        let squareVertices = [
+           1,  1, 0,
+          -1,  1, 0,
+           1, -1, 0,
+          -1, -1, 0,
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(squareVertices), gl.STATIC_DRAW);
+        squareVertexPositionBuffer.itemSize = 3;
+        squareVertexPositionBuffer.numItems = 4;
+
+        gl.clearColor(0, 0, 0, 1);
+        gl.enable(gl.DEPTH_TEST);
+
+        // Drawing the scene
+        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        // mat4 Comes from the glMatrix library.  Matrix math.
+
+        // Model view matrix.
+        let mvMatrix = mat4.create();
+
+        // Perspective matrix.
+        let pMatrix = mat4.create();
+
+        // Default viewport is orthographic projection.  pMatrix represents
+        // the camera viewport for 3d rendering now.
+
+        mat4.perspective(pMatrix, 45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
+        mat4.identity(mvMatrix);
+        mat4.translate(mvMatrix, mvMatrix, [-1.5, 0, -7]);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+        gl.vertexAttribPointer(program.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.uniformMatrix4fv(program.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
+        gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+
+        mat4.translate(mvMatrix, mvMatrix, [3, 0, 0]);
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+        gl.vertexAttribPointer(program.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.uniformMatrix4fv(program.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(program.mvMatrixUniform, false, mvMatrix);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+      });
+    </script>
+  </body>
+</html>
