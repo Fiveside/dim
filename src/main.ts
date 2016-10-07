@@ -9,6 +9,9 @@ const app = Electron.app;
 // Module to create native browser window.
 const BrowserWindow = Electron.BrowserWindow;
 
+// My gpu is blacklisted.  Do this while I get it working
+app.commandLine.appendSwitch("ignore-gpu-blacklist");
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow: Electron.BrowserWindow;
@@ -29,6 +32,12 @@ function createWindow () {
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
     mainWindow = null;
+  });
+
+  // Prevent the window from navigating when the user drags and drops a file
+  // onto the window.
+  mainWindow.webContents.on("will-navigate", (e) => {
+    e.preventDefault();
   });
 
   // Initialize the window message pump.

@@ -4,6 +4,7 @@ import IPC from "../ipc";
 import {autobind} from "core-decorators";
 import ViewerModel from "./models/viewer";
 import Viewport from "./viewport";
+import DragDrop from "./dragdrop";
 import {observer} from "mobx-react";
 import WindowState from "./models/window";
 import Title from "./title";
@@ -47,11 +48,18 @@ export default class Application extends React.Component<IApplicationProps, {}> 
     return `Dim <${rootName}> ${filename}`;
   }
 
+  getUploader() {
+    return (
+      <DragDrop onUpload={() => { console.log("onUpload called"); }} />
+    );
+  }
+
   render() {
     if (!this.props.viewer.isLoaded) {
       return (
         <div className="top-menu">
           <Title title="Dim" />
+          {this.getUploader()}
           <button key="filePickerBtn_1" onClick={this.handleLoadFile}>Select File</button>
           <button key="filePickerBtn_2" onClick={this.handleLoadFolder}>Select Folder</button>
         </div>
@@ -64,6 +72,7 @@ export default class Application extends React.Component<IApplicationProps, {}> 
     return (
       <div className={cx(appClass)}>
         <Title title={this.getTitle()} />
+        {this.getUploader()}
         <Viewport viewer={this.props.viewer} />
       </div>
     );
