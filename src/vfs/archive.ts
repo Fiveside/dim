@@ -186,7 +186,7 @@ interface IArchiveControllerProps {
 class ArchiveController {
   // Buffer location for scratch data.
   // These are set by the libarchive callbacks.
-  get bufSize() { return 1024; };
+  get bufSize() { return 4096; };
   bufLoc: EmPtr;
   buf: Uint8Array;
 
@@ -219,13 +219,9 @@ class ArchiveController {
 
   destroy(): void {
     console.log("Destroying");
-    if (ARC._archive_read_finish(this.archive) !== ARCHIVE.OK) {
-      console.warn("Libarchive reported error while closing: ", getError(this.archive));
-    }
     this.close();
-
     CALLBACK_REGISTRY.delete(this.sig);
-    freePtr(this.archiveEntry);
+    freePtr(this.archiveEntryPtr);
     freePtr(this.bufLoc);
   }
 

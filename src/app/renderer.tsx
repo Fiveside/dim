@@ -107,7 +107,7 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
                 onContextMenu={this.onContextMenu}
                 onMouseDown={this.onMouseDown}
                 onClick={this.onClick}
-        />;
+        />
       </div>
     );
   }
