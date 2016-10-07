@@ -1,4 +1,4 @@
-import {observable, computed} from "mobx";
+import {observable, computed, transaction} from "mobx";
 import * as Drawing from "../lib/drawing";
 import * as Path from "path";
 const natsort = require("natsort");
@@ -53,16 +53,24 @@ abstract class VirtualEntry {}
 export abstract class VirtualCollection extends VirtualEntry {
   @observable location: string;
   @observable pages: Array<VirtualPage>;
-  @observable pageNum: number;
+  @observable _pageNum: number;
 
-  // stacks
+  // should behave like [_pageNum, _lPageNum)
+  @computed get _lPageNum() { return this._pageNum + this.currentPageCount; }
+
+  // stacks for the currently loaded pages.
   _nextPageCache: Array<IVirtualPage> = [];
   _prevPageCache: Array<IVirtualPage> = [];
 
   _nextCacheSize = 20;
   _prevCacheSize = 10;
 
-  @observable currentPage: IVirtualPage;
+  @observable currentPages: Array<IVirtualPage> = [];
+  @observable currentPageCount: number = 1;
+
+  @computed get currentPageRange(): Array<number> {
+    return this.currentPages.map((x, idx) => idx + this._pageNum);
+  }
 
   @computed get name(): string { return Path.basename(this.location); }
   @computed get length(): number { return this.pages.length; }
@@ -86,88 +94,147 @@ export abstract class VirtualCollection extends VirtualEntry {
     this.pages.forEach(child => child.unload());
   }
 
-    // Used to set a page and flush the caches.
+  setPageCount(numPages: number): Promise<void> {
+    this.currentPageCount = numPages;
+    return this.jumpPage(this._pageNum);
+  }
+
+  // Used to set a page and flush the caches.
   // promise resolves when the current page is done loading.
   async jumpPage(pageNum: number): Promise<void> {
+    // debugger;
+    // Quick guard to prevent action if the requested page is out of range.
     if (pageNum < 0 || pageNum >= this.pages.length) {
-      console.warn("Attempted to navigate to a page that was out of range.");
+      // console.warn("Attempted to navigate to a page that was out of range.");
       return;
     }
 
-    this.pageNum = pageNum;
-    this.currentPage = this.pages[pageNum];
+    // immediately awaiting promises
+    let p: Array<Promise<any>> = [];
 
-    // Flush the previous caches
-    this._nextPageCache.forEach(x => x.unload());
-    this._prevPageCache.forEach(x => x.unload());
+    // delayed promises.
+    let ps: Array<{(): Promise<any>}> = [];
 
-    // up the next and previous cache.
-    this._nextPageCache = this.pages.slice(
-      this.pageNum + 1,
-      this.pageNum + 1 + this._nextCacheSize
-    );
-    this._prevPageCache = this.pages.slice(
-      Math.max(this.pageNum - 1 - this._prevCacheSize, 0),
-      Math.max(this.pageNum - 1, 0)
-    ).reverse();
+    transaction(() => {
+      // old items loaded into memory.  Don't need to unload these when done
+      let oldCache = this.currentPages.concat(this._nextPageCache, this._prevPageCache);
 
-    // Load pages that require it in a mildly smart way.
-    // First the current page, Then the next page,
-    await this.currentPage.load();
+      this._pageNum = pageNum;
+      let fnum = pageNum;
+      let lnum = pageNum + this.currentPageCount;
 
-    // Load all subsequent pages.
-    let p: Promise<any> = Promise.resolve();
-    if (this._nextPageCache[0] != null) {
-      p = this._nextPageCache[0].load();
-    }
-    p.then(() => {
-      this._nextPageCache.slice(1).map(x => x.load());
-      this._prevPageCache.map(x => x.load());
+      this.currentPages = this.pages.slice(fnum, lnum);
+      // this.currentPage = this.pages[pageNum];
+
+      // up the next and previous cache.
+      this._nextPageCache = this.pages.slice(
+        lnum,
+        lnum + this._nextCacheSize
+      );
+      this._prevPageCache = this.pages.slice(
+        Math.max(fnum - this._prevCacheSize, 0),
+        Math.max(fnum, 0)
+      ).reverse();
+
+      // Unload any pages that are not in the new cache system
+      let newCache = new Set(this.currentPages.concat(this._nextPageCache, this._prevPageCache));
+      oldCache.filter(x => !newCache.has(x)).forEach(x => x.unload());
+
+      // Load pages that require it in a mildly smart way.
+      // First the current page, Then the next page,
+      p.push(Promise.all(this.currentPages.map(x => x.load())));
+
+      // Load all subsequent pages later on.
+      if (this._nextPageCache[0] != null) {
+        ps.push(() => this._nextPageCache[0].load());
+      }
+      ps.push(() => Promise.all(this._nextPageCache.slice(1).map(x => x.load())));
+      ps.push(() => Promise.all(this._prevPageCache.map(x => x.load())));
     });
+
+    // Load all p promises immediately.
+    await Promise.all(p);
+
+    // Optionally allow ps promises to be delay loaded.
+    ps.reduce((l, r) => l.then(r), Promise.resolve());
   }
 
-  navNext() {
-    if (this.pageNum >= this.pages.length - 1) {
-      console.warn("Attempted to navigate to a page that was out of range.");
-      return;
-    }
-
-    let nextLoadNum = this.pageNum + this._nextPageCache.length + 1;
-    if (nextLoadNum < this.pages.length) {
-      this._nextPageCache.push(this.pages[nextLoadNum]);
-      this.pages[nextLoadNum].load();
-    }
-
-    this._prevPageCache.unshift(this.currentPage);
-    this.currentPage = this._nextPageCache.shift();
-    if (this._prevPageCache.length > this._prevCacheSize) {
-      this._prevPageCache.pop().unload();
-    }
-
-    this.pageNum += 1;
+  navNext(): Promise<void> {
+    return this.jumpPage(this._pageNum + this.currentPageCount);
   }
 
-  navPrev() {
-    if (this.pageNum <= 0) {
-      console.warn("Attempted to navigate to a page that was out of range.");
-      return;
-    }
-
-    let prevLoadNum = this.pageNum - this._prevPageCache.length - 1;
-    if (prevLoadNum >= 0) {
-      let page = this.pages[prevLoadNum];
-      this._prevPageCache.push(page);
-      page.load();
-    }
-
-    this._nextPageCache.unshift(this.currentPage);
-    this.currentPage = this._prevPageCache.shift();
-    if (this._nextPageCache.length > this._nextCacheSize) {
-      this._nextPageCache.pop().unload();
-    }
-
-    this.pageNum -= 1;
+  navPrev(): Promise<void> {
+    return this.jumpPage(this._pageNum - this.currentPageCount);
   }
+
+  shiftNext(): Promise<void> {
+    return this.jumpPage(this._pageNum + 1);
+  }
+
+  shiftPrev(): Promise<void> {
+    return this.jumpPage(this._pageNum - 1);
+  }
+
+  // _nav(numPages: number): void {
+  //   // Safety
+  //   numPages = Math.min(this._pageNum + numPages, this.pages.length);
+  //   if (this._pageNum + numPages >= this.pages.length - 1) {
+
+  //   }
+  // }
+
+  // _navPrev() {
+  // }
+
+  // shiftNext() {
+  //   if (this._pageNum >= this.pages.length - 1) {
+  //     // console.warn("Attempted to navigate to a page that was out of range.");
+  //     return;
+  //   }
+
+  //   let nextLoadNum = this._pageNum + this._nextPageCache.length + 1;
+  //   if (nextLoadNum < this.pages.length) {
+  //     this._nextPageCache.push(this.pages[nextLoadNum]);
+  //     this.pages[nextLoadNum].load();
+  //   }
+
+  //   let newPages: Array<VirtualPage> = [];
+
+  //   this._prevPageCache.unshift(this.currentPages.shift());
+  //   // this.currentPages.forEach(x => this._prevPageCache.unshift(x));
+  //   // this._prevPageCache.unshift(this.currentPage);
+  //   this.currentPages.push(this._nextPageCache.shift());
+  //   // this.currentPage = this._nextPageCache.shift();
+  //   if (this._prevPageCache.length > this._prevCacheSize) {
+  //     this._prevPageCache.pop().unload();
+  //   }
+
+  //   this._pageNum += 1;
+  // }
+
+  // shiftPrev() {
+  //   if (this._pageNum <= 0) {
+  //     // console.warn("Attempted to navigate to a page that was out of range.");
+  //     return;
+  //   }
+
+  //   let prevLoadNum = this._pageNum - this._prevPageCache.length - 1;
+  //   if (prevLoadNum >= 0) {
+  //     let page = this.pages[prevLoadNum];
+  //     this._prevPageCache.push(page);
+  //     page.load();
+  //   }
+
+  //   // this._nextPageCache.unshift(this.currentPages.pop);
+  //   this._nextPageCache.unshift(this.currentPages.pop());
+  //   // this.currentPage = this._prevPageCache.shift();
+  //   this.currentPages.unshift(this._prevPageCache.shift());
+  //   if (this._nextPageCache.length > this._nextCacheSize) {
+  //     this._nextPageCache.pop().unload();
+  //   }
+
+  //   this._pageNum -= 1;
+  // }
 }
 
 export interface IVirtualPageProps {

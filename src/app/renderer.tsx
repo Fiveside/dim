@@ -4,11 +4,12 @@ import {IVirtualPage} from "../vfs";
 import {autobind} from "core-decorators";
 import {throttleAnimationFrame} from "../lib/util";
 import {autorun} from "mobx";
+import {Layout} from "../layout";
 import * as Drawing from "../lib/drawing";
 
 interface IRendererProps {
   className: string;
-  file: IVirtualPage;
+  layout: Layout;
   onLeftClick: {(e: React.MouseEvent): any};
   onRightClick: {(e: React.MouseEvent): any};
 }
@@ -24,60 +25,65 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
 
   refs: ICanvasRendererRefs;
   doPaint: {(...args: any[]): any | void};
-  disposer: {(): void};
 
   constructor() {
     super();
-    this.doPaint = throttleAnimationFrame(this._paint.bind(this));
+    // this.doPaint = throttleAnimationFrame(this._paint.bind(this));
   }
 
   componentDidMount() {
-    this.disposer = autorun(this.paint.bind(this));
     window.addEventListener("resize", this.onResize);
+    this._resizeCanvas();
+    this.props.layout.setCanvas(this.refs.canvas);
   }
 
-  paint() {
-    // Touch some props so that mobx knows what to observe for this
-    if (!this.props.file.isLoaded) {
-      console.log("Image not loaded, cannot paint");
-      return;
-    }
+  // paint() {
+  //   // Touch some props so that mobx knows what to observe for this
+  //   if (!this.props.file.isLoaded) {
+  //     console.log("Image not loaded, cannot paint");
+  //     return;
+  //   }
 
-    this.doPaint(this.props.file.image);
-  }
+  //   // this.doPaint(this.props.file.image);
+  // }
 
   componentWillUnmount() {
-    this.disposer();
     window.removeEventListener("resize", this.onResize);
+    this.props.layout.clearCanvas();
   }
 
-  componentDidUpdate() {
-    this.paint();
-  }
+  // // use this.paint, that throttles on animation frame.
+  // _paint(source: Drawing.DrawSource) {
+  //   // console.log("painting", this.props.file.name);
 
-  // use this.paint, that throttles on animation frame.
-  _paint(source: Drawing.DrawSource) {
-    // console.log("painting", this.props.file.name);
+  //   // Because paint is called asynchronously, it may be called after the
+  //   // component is dead.
+  //   if (this.refs.canvas == null) {
+  //     return;
+  //   }
 
-    // Because paint is called asynchronously, it may be called after the
-    // component is dead.
-    if (this.refs.canvas == null) {
-      return;
-    }
+  //   let canvas = this.refs.canvas;
+  //   let bbox = this.refs.container.getBoundingClientRect();
 
+  //   canvas.width = bbox.width;
+  //   canvas.height = bbox.height;
+
+  //   this.props.layout.paint();
+  //   // Drawing.fit(this.refs.canvas, source);
+  // }
+
+  _resizeCanvas() {
     let canvas = this.refs.canvas;
     let bbox = this.refs.container.getBoundingClientRect();
-
     canvas.width = bbox.width;
     canvas.height = bbox.height;
-
-    Drawing.fit(this.refs.canvas, source);
   }
 
   @autobind
   onResize() {
     console.log("Detected resize");
-    this.paint();
+    this._resizeCanvas();
+    this.props.layout.delayPaint();
   }
 
   @autobind
@@ -100,7 +106,6 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
   }
 
   render() {
-    this.paint();
     return (
       <div className={this.props.className} ref="container">
         <canvas ref="canvas"

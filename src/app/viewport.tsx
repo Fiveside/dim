@@ -62,19 +62,28 @@ export default class Viewport extends React.Component<IViewportProps, {}> {
     this.props.viewer.nextChapter();
   }
 
+  getPageNumbers(): string {
+    let range = this.props.viewer.chapter.currentPageRange;
+    if (range.length > 1) {
+      return `${range[0]}-${range[range.length - 1]}`;
+    } else {
+      return range[0].toString();
+    }
+  }
+
   render() {
     return (
       <div className="viewport">
         <Renderer className="image-container"
                   ref="renderer"
-                  file={this.props.viewer.currentPage}
+                  layout={this.props.viewer.layout}
                   onLeftClick={this.handleNextClick}
                   onRightClick={this.handlePrevClick}
         />
         <div className="bottom-menu" >
           <button onClick={this.handlePrevChapter}>Previous Chapter</button>
           <button onClick={this.handlePrevClick}>Previous Page</button>
-          <span> {this.props.viewer.pageNumber + 1} of {this.props.viewer.pageTotal}</span>
+          <span> {this.getPageNumbers()} of {this.props.viewer.pageTotal}</span>
           <button onClick={this.handleNextClick}>Next Page</button>
           <button onClick={this.handleNextChapter}>Next Chapter</button>
         </div>
