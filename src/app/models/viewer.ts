@@ -10,7 +10,7 @@ export default class Viewer {
   @observable chapter: VFS.VirtualCollection;
 
   @observable layout: Layouts.Layout = null;
-  layoutCtor: Layouts.LayoutConstructor = Layouts.SinglePageFitLayout;
+  layoutCtor: Layouts.LayoutConstructor = Layouts.SmartDualPageFitLayout;
 
   @computed get pageTotal(): number {
     return this.chapter.length;
@@ -54,11 +54,11 @@ export default class Viewer {
   }
 
   nextPage(): void {
-    this.chapter.navNext();
+    this.layout.nextPage();
   }
 
   previousPage(): void {
-    this.chapter.navPrev();
+    this.layout.prevPage();
   }
 
   async nextChapter(): Promise<boolean> {

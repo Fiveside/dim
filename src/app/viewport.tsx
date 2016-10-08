@@ -63,7 +63,7 @@ export default class Viewport extends React.Component<IViewportProps, {}> {
   }
 
   getPageNumbers(): string {
-    let range = this.props.viewer.chapter.currentPageRange;
+    let range = this.props.viewer.layout.currentPageRange.map(x => x + 1);
     if (range.length > 1) {
       return `${range[0]}-${range[range.length - 1]}`;
     } else {

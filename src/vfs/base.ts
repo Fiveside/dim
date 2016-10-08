@@ -53,10 +53,10 @@ abstract class VirtualEntry {}
 export abstract class VirtualCollection extends VirtualEntry {
   @observable location: string;
   @observable pages: Array<VirtualPage>;
-  @observable _pageNum: number;
+  @observable pageNum: number;
 
   // should behave like [_pageNum, _lPageNum)
-  @computed get _lPageNum() { return this._pageNum + this.currentPageCount; }
+  @computed get _lPageNum() { return this.pageNum + this.currentPageCount; }
 
   // stacks for the currently loaded pages.
   _nextPageCache: Array<IVirtualPage> = [];
@@ -69,7 +69,7 @@ export abstract class VirtualCollection extends VirtualEntry {
   @observable currentPageCount: number = 1;
 
   @computed get currentPageRange(): Array<number> {
-    return this.currentPages.map((x, idx) => idx + this._pageNum);
+    return this.currentPages.map((x, idx) => idx + this.pageNum);
   }
 
   @computed get name(): string { return Path.basename(this.location); }
@@ -96,7 +96,7 @@ export abstract class VirtualCollection extends VirtualEntry {
 
   setPageCount(numPages: number): Promise<void> {
     this.currentPageCount = numPages;
-    return this.jumpPage(this._pageNum);
+    return this.jumpPage(this.pageNum);
   }
 
   // Used to set a page and flush the caches.
@@ -119,7 +119,7 @@ export abstract class VirtualCollection extends VirtualEntry {
       // old items loaded into memory.  Don't need to unload these when done
       let oldCache = this.currentPages.concat(this._nextPageCache, this._prevPageCache);
 
-      this._pageNum = pageNum;
+      this.pageNum = pageNum;
       let fnum = pageNum;
       let lnum = pageNum + this.currentPageCount;
 
@@ -160,19 +160,19 @@ export abstract class VirtualCollection extends VirtualEntry {
   }
 
   navNext(): Promise<void> {
-    return this.jumpPage(this._pageNum + this.currentPageCount);
+    return this.jumpPage(this.pageNum + this.currentPageCount);
   }
 
   navPrev(): Promise<void> {
-    return this.jumpPage(this._pageNum - this.currentPageCount);
+    return this.jumpPage(this.pageNum - this.currentPageCount);
   }
 
   shiftNext(): Promise<void> {
-    return this.jumpPage(this._pageNum + 1);
+    return this.jumpPage(this.pageNum + 1);
   }
 
   shiftPrev(): Promise<void> {
-    return this.jumpPage(this._pageNum - 1);
+    return this.jumpPage(this.pageNum - 1);
   }
 
   // _nav(numPages: number): void {

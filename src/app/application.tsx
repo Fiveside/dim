@@ -41,7 +41,7 @@ export default class Application extends React.Component<IApplicationProps, {}> 
 
     let filename = "";
     if (this.props.viewer.isLoaded != null) {
-      filename = this.props.viewer.chapter.currentPages.map(x => x.name).join(", ");
+      filename = this.props.viewer.layout.currentPages.map(x => x.name).join(", ");
     }
 
     return `Dim <${rootName}> [${filename}]`;
