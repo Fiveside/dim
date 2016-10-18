@@ -47,6 +47,14 @@ export default class CanvasRenderer extends React.Component<IRendererProps, {}> 
   //   // this.doPaint(this.props.file.image);
   // }
 
+  // componentWillReceiveProps() {
+  //   debugger;
+  // }
+
+  componentWillUpdate() {
+    this.props.layout.setCanvas(this.refs.canvas);
+  }
+
   componentWillUnmount() {
     window.removeEventListener("resize", this.onResize);
     this.props.layout.clearCanvas();

@@ -32,7 +32,6 @@ export class FSPage extends VirtualPage {
     this.root = opts.root;
   }
   async _load(): Promise<string> {
-    debugger;
     return fileUrl(Path.join(this.root, this.name));
   }
 

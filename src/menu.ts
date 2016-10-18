@@ -1,9 +1,9 @@
 import * as Electron from "electron";
 import {sendEventToRenderProcess} from "./events";
 
-function announce(eventName: string) {
+function announce(eventName: string, ...data: Array<any>) {
   return function(menuItem: Electron.MenuItem, bw: Electron.BrowserWindow) {
-    sendEventToRenderProcess(bw, eventName, null);
+    sendEventToRenderProcess(bw, eventName, ...data);
   };
 }
 
@@ -39,6 +39,27 @@ const menu = Electron.Menu.buildFromTemplate([
       {
         role: "close",
       }
+    ]
+  },
+  {
+    label: "Layout",
+    submenu: [
+      {
+        label: "1 Page 100% Fit",
+        type: "radio",
+        click: announce("menu:layout", "single-page-fit"),
+      },
+      {
+        label: "2 Page 100% Fit",
+        type: "radio",
+        click: announce("menu:layout", "dual-page-fit"),
+      },
+      {
+        // What a terrible name.  Need to rename this.
+        label: "Smart Multipage 100% Fit",
+        type: "radio",
+        click: announce("menu:layout", "smart-dual-page-fit"),
+      },
     ]
   },
   {

@@ -12,7 +12,7 @@ export type DrawSource = HTMLCanvasElement | HTMLImageElement;
 
 export abstract class Layout {
   @observable pages: VirtualCollection;
-  @observable canvas: HTMLCanvasElement;
+  @observable canvas?: HTMLCanvasElement;
   _onDestroy: Array<{(): void}> = [];
 
   constructor(pages: VirtualCollection) {
@@ -38,12 +38,14 @@ export abstract class Layout {
   @autobind
   _tick(): void {
     // Sanity checks.  Required as this is in an autorun.
-    let pages = this.pages;
-    let canvas = this.canvas;
-    if (canvas == null || pages == null) {
+    if (this.pages == null || this.canvas == null) {
       return;
     }
-    if (!_.every(pages.currentPages, x => x.isLoaded)) {
+    // let canvas = this.canvas;
+    // if (canvas == null || pages == null) {
+    //   return;
+    // }
+    if (!_.every(this.pages.currentPages, x => x.isLoaded)) {
       // Still waiting on some pages to load.
       return;
     }

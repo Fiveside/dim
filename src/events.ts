@@ -21,7 +21,7 @@ interface HostMessage {
   data: any;
 }
 
-export function sendEventToRenderProcess(bw: Electron.BrowserWindow, name: string, data: any) {
+export function sendEventToRenderProcess(bw: Electron.BrowserWindow, name: string, ...data: Array<any>) {
   bw.webContents.send("host-event", <HostMessage>{
     name: name,
     data: data,
@@ -31,7 +31,7 @@ export function sendEventToRenderProcess(bw: Electron.BrowserWindow, name: strin
 export function initEvents(bw: Electron.BrowserWindow) {
   for (let name of EVENT_NAMES) {
     bw.on(name, function() {
-      sendEventToRenderProcess(bw, name, null);
+      sendEventToRenderProcess(bw, name);
     });
   }
 }
@@ -44,7 +44,7 @@ export function getListener(): EventEmitter {
 
   emitter = new EventEmitter();
   Electron.ipcRenderer.on("host-event", (event: Electron.IpcRendererEvent, msg: HostMessage) => {
-    emitter.emit(msg.name);
+    emitter.emit(msg.name, ...msg.data);
   });
   return emitter;
 }

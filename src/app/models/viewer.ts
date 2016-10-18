@@ -1,8 +1,12 @@
 import {observable, computed, transaction} from "mobx";
+import {getListener} from "../../events";
 import * as Layouts from "../../layout";
 import * as Path from "path";
 import * as VFS from "../../vfs";
 
+
+// This is designed to be used as a singleton.  As such, there are some
+// assumptions made around this.
 export default class Viewer {
   @observable isLoaded: boolean = false;
 
@@ -14,6 +18,22 @@ export default class Viewer {
 
   @computed get pageTotal(): number {
     return this.chapter.length;
+  }
+
+  constructor() {
+    let listener = getListener();
+    listener.on("menu:layout", (ltype: string) => {
+      let ctor = Layouts.getLayoutByName(ltype);
+      if (this.layoutCtor !== ctor) {
+        if (this.layout != null) {
+          this.layout.destroy();
+        }
+      }
+      this.layoutCtor = ctor;
+      if (this.isLoaded) {
+        this.layout = new this.layoutCtor(this.chapter);
+      }
+    });
   }
 
   _setChapter(pages: VFS.VirtualCollection) {

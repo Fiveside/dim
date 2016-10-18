@@ -53,6 +53,11 @@ function paintTwo(canvas: HTMLCanvasElement, lsource: DrawSource, rsource: DrawS
   let middle = cwhalf;
   let ch = Math.floor(canvas.height);
 
+  // Swap halves because this is manga.
+  let temp = lsource;
+  lsource = rsource;
+  rsource = temp;
+
   let ld = getDimensions(lsource.width, lsource.height, cwhalf, ch);
   let rd = getDimensions(rsource.width, rsource.height, cwhalf, ch);
 
@@ -80,7 +85,6 @@ function paintTwo(canvas: HTMLCanvasElement, lsource: DrawSource, rsource: DrawS
 }
 
 export class SinglePageFitLayout extends Layout {
-
   constructor(pages: VirtualCollection) {
     super(pages);
     pages.setPageCount(1);

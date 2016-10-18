@@ -102,7 +102,6 @@ export abstract class VirtualCollection extends VirtualEntry {
   // Used to set a page and flush the caches.
   // promise resolves when the current page is done loading.
   async jumpPage(pageNum: number): Promise<void> {
-    // debugger;
     // Quick guard to prevent action if the requested page is out of range.
     if (pageNum < 0 || pageNum >= this.pages.length) {
       // console.warn("Attempted to navigate to a page that was out of range.");
