@@ -47,7 +47,7 @@ const tsProject = ts.createProject(PATHS.project, tsOptions);
 gulp.task("compile", () => {
   return tsProject.src("src")
     .pipe(sourcemaps.init())
-    .pipe(ts(tsProject)).js
+    .pipe(tsProject()).js
     .pipe(sourcemaps.write())
     .pipe(gulp.dest(PATHS.build));
 });

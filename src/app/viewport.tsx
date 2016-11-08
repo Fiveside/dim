@@ -1,3 +1,4 @@
+import JSX from "./jsx";
 import * as React from "react";
 import {observer} from "mobx-react";
 import Viewer from "./models/viewer";

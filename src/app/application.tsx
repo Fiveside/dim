@@ -1,3 +1,4 @@
+import JSX from "./jsx";
 import * as React from "react";
 import * as Electron from "electron";
 import IPC from "../ipc";
