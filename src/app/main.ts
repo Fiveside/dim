@@ -1,32 +1,29 @@
 import * as Electron from "electron";
 import * as rx from "rxjs";
 import * as Cycle from "@cycle/rxjs-run";
-import {makeDOMDriver, VNode, div, button, canvas, span} from "@cycle/dom";
+import {makeDOMDriver, VNode, div, button, span} from "@cycle/dom";
 import {DOMSource} from "@cycle/dom/rxjs-typings";
 import {model, Actions, AppState} from "./model";
 import {MESSAGE} from "../ipc";
 import * as _ from "lodash";
-import isolate from "@cycle/isolate";
-import {makeElectronIPCDriver, ElectronIPCStream, createIPCMessage} from "./drivers";
+import * as Drivers from "./drivers";
 
 type Sources = {
   DOM: DOMSource;
-  electron: ElectronIPCStream;
+  electron: Drivers.ElectronIPCStream;
+  canvas: Drivers.CanvasRenderSource;
 }
 
-interface DomSink {
+interface MainSink {
   DOM: rx.Observable<VNode>;
+  electron: Drivers.ElectronIPCStream;
 }
 
-interface MainSink extends DomSink {
-  electron: ElectronIPCStream;
-}
-
-function intent(sources: Sources): {actions: Actions, sinks: {electron: ElectronIPCStream}} {
+function intent(sources: Sources): {actions: Actions, sinks: {electron: Drivers.ElectronIPCStream}} {
   let fileOpens = sources.DOM.select(".file").events("click").map(() =>
-    createIPCMessage(MESSAGE.toHost.OpenFile));
+    Drivers.createIPCMessage(MESSAGE.toHost.OpenFile));
   let folderOpens = sources.DOM.select(".folder").events("click").map(() =>
-    createIPCMessage(MESSAGE.toHost.OpenFolder));
+    Drivers.createIPCMessage(MESSAGE.toHost.OpenFolder));
 
   let actions: Actions = {
     nextPage: sources.DOM.select(".next-page").events("click"),
@@ -37,6 +34,7 @@ function intent(sources: Sources): {actions: Actions, sinks: {electron: Electron
     openFile: sources.electron.filter(x => x.name === MESSAGE.toGuest.OpenFile).map(x => x.data[0]),
     openFolder: sources.electron.filter(x => x.name === MESSAGE.toGuest.OpenFolder).map(x => x.data[0]),
     closeChapter: rx.Observable.never(),
+    setLayout: rx.Observable.never(),
   };
 
   return {
@@ -47,7 +45,7 @@ function intent(sources: Sources): {actions: Actions, sinks: {electron: Electron
   };
 }
 
-function view(data: AppState): {DOM: rx.Observable<VNode>} {
+function view(data: AppState, canvas: Drivers.CanvasRenderSource): {DOM: rx.Observable<VNode>} {
   let totalPages = rx.Observable.of(null).merge(data.chapter.map(x => x.length));
   let doctoredPage = rx.Observable.of(null).merge(data.currentPage);
   let merged = rx.Observable.combineLatest(
@@ -69,7 +67,7 @@ function view(data: AppState): {DOM: rx.Observable<VNode>} {
       } else {
         inner = div(".viewport", [
           div(".image-container", [
-            canvas(),
+            canvas.vtree,
           ]),
           div(".bottom-menu", [
             button(".previous-chapter", "Previous Chapter"),
@@ -91,7 +89,7 @@ function main(sources: Sources): MainSink {
   let intentSinks = intents.sinks;
 
   let data = model(actions);
-  let vdom = view(data);
+  let vdom = view(data, sources.canvas);
 
   let sinks = {
     DOM: vdom.DOM,
@@ -107,7 +105,8 @@ function bootstrap() {
 
   let drivers = {
     DOM: makeDOMDriver("#root"),
-    electron: makeElectronIPCDriver(_.values(MESSAGE.toGuest))
+    electron: Drivers.makeElectronIPCDriver(_.values(MESSAGE.toGuest)),
+    canvas: Drivers.makeCanvasRenderDriver(),
   };
 
   // returns a function, dunno what it does.

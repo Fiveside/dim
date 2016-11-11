@@ -1,6 +1,6 @@
 {
   "name": "dim",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "An image viewer",
   "main": "main.js",
   "repository": {
@@ -16,6 +16,7 @@
   "license": "MPL-2.0",
   "devDependencies": {
     "@types/bluebird": "^3.0.35",
+    "@types/core-decorators": "^0.10.30",
     "@types/electron": "^1.4.25",
     "@types/lodash": "^4.14.38",
     "@types/node": "^6.0.46",
@@ -33,7 +34,6 @@
   },
   "dependencies": {
     "@cycle/dom": "^14.0.0",
-    "@cycle/isolate": "^1.4.0",
     "@cycle/rxjs-run": "^3.0.3",
     "bluebird": "^3.4.6",
     "classnames": "^2.2.5",
@@ -42,10 +42,7 @@
     "keypress": "git+https://github.com/dmauro/Keypress.git",
     "lodash": "^4.16.6",
     "mobx": "^2.6.1",
-    "mobx-react": "^3.5.8",
     "natsort": "^1.0.6",
-    "react": "^15.3.2",
-    "react-dom": "^15.3.2",
     "rxjs": "^5.0.0-rc.2",
     "xstream": "^7.0.0",
     "yauzl": "^2.7.0"

@@ -1,5 +1,4 @@
 import {autobind} from "core-decorators";
-import * as React from "react";
 import * as _ from "lodash";
 const Keypress = require("keypress");
 

@@ -11,6 +11,7 @@ export interface AppState {
   currentPage: rx.Observable<number>;
   openFile: rx.Observable<string | null>;
   chapter: rx.Observable<VirtualCollection>;
+  layout: rx.Observable<Layout>;
 }
 
 
@@ -24,7 +25,7 @@ export interface Actions {
   openFile: rx.Observable<string>;
   openFolder: rx.Observable<string>;
   closeChapter: rx.Observable<string>;
-  // setLayout: rx.Observable<Layout>;
+  setLayout: rx.Observable<Layout>;
 }
 
 export function model(actions: Actions): AppState {
@@ -65,9 +66,15 @@ export function model(actions: Actions): AppState {
       return Math.min(a.length - 1, Math.max(0, num));
     }, 0).distinctUntilChanged();
 
+  // The layout!
+  let layout = rx.Observable.of("Basic Layout").merge(
+    actions.setLayout
+  );
+
   return {
     currentPage: currentPage,
     openFile: currentChapter,
     chapter: archive,
+    layout: layout,
   };
 }
