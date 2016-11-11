@@ -48,23 +48,64 @@ export function createIPCMessage(name: string, ...args: any[]): ElectronIPCMessa
   };
 }
 
+
+export interface CanvasRenderMessage {
+  canvas: HTMLCanvasElement;
+  resolution: {
+    x: number;
+    y: number;
+  };
+}
+
 export interface CanvasRenderSource {
   vtree: VNode;
-  canvas: rx.Observable<HTMLCanvasElement>;
+  canvas: rx.Observable<CanvasRenderMessage>;
 }
 
 // The canvas driver provides a vdom and a canvas rx
 // It accepts an rx of layouts for resizing purposes.
 export function makeCanvasRenderDriver() {
-  function driver(layouts: rx.Observable<string>): CanvasRenderSource {
+  function driver(): CanvasRenderSource {
+
+    // Create hooks for important nodes in the vdom.
     let canvasCache = new rx.ReplaySubject<HTMLCanvasElement>(1);
-    let vtree = h("canvas", {
-      hook: {insert: (x: VNode) => canvasCache.next(<HTMLCanvasElement>x.elm)}
-    }, []);
+    let containerCache = new rx.ReplaySubject<HTMLDivElement>(1);
+    function isert<T extends Element>(cache: rx.ReplaySubject<T>) {
+      return function(x: VNode): void {
+        cache.next(<T>x.elm);
+      };
+    }
+
+    let vtree = h("div.image-container",
+      {hook: {insert: isert(containerCache)}},
+      [
+        h("canvas", {hook: {insert: isert(canvasCache)}})
+      ],
+    );
+
+    // Resize the canvas whenever the window is resized.
+    let windowResolution = rx.Observable
+      .of([window.innerWidth, window.innerHeight])
+      .merge(rx.Observable.fromEvent(window, "resize")
+        .map(() => [window.innerWidth, window.innerHeight]),
+      );
+
+    let messages = rx.Observable.combineLatest(
+      canvasCache, containerCache, windowResolution
+    ).map(([canvas, container]) => {
+      let bbox = container.getBoundingClientRect();
+      return <CanvasRenderMessage>{
+        canvas: canvas,
+        resolution: {
+          x: bbox.width,
+          y: bbox.height,
+        }
+      };
+    });
 
     return <CanvasRenderSource>{
       vtree: vtree,
-      canvas: canvasCache
+      canvas: messages,
     };
   }
   return driver;

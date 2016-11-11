@@ -43,8 +43,14 @@ enum PageLayout {
   Smaht,
 }
 
+
+interface Resolution {
+  x: number;
+  y: number;
+}
+
 export interface Layout {
-  paint(chapter: VirtualCollection, pageNum: number, canvas: HTMLCanvasElement): void;
+  paint(chapter: VirtualCollection, pageNum: number, canvas: HTMLCanvasElement, suggestedRes: Resolution): void;
 }
 
 export class FitLayout {
@@ -55,14 +61,13 @@ export class FitLayout {
     this.direction = direction;
   }
 
-  async paint(chapter: VirtualCollection, pageNum: number, canvas: HTMLCanvasElement) {
-    // let page = chapter.pages[pageNum];
-    // page.image.take(1).toPromise();
+  async paint(chapter: VirtualCollection, pageNum: number, canvas: HTMLCanvasElement, suggestedRes: Resolution) {
     let page = await chapter.pages[pageNum].image;
     let sourceWidth = page.width;
     let sourceHeight = page.height;
-    let canvasWidth = canvas.width;
-    let canvasHeight = canvas.height;
+
+    let canvasWidth = canvas.width = suggestedRes.x;
+    let canvasHeight = canvas.height = suggestedRes.y;
 
     let target = {
       x: 0,

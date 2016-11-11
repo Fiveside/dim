@@ -38,10 +38,8 @@ function genericFilePicker(
 
   let bw = Electron.BrowserWindow.fromWebContents(sender);
   Electron.dialog.showOpenDialog(bw, options, (filenames: string[]) => {
-    console.log("showOpenDialog returned", typeof filenames, filenames);
     if (filenames != null && filenames.length > 0) {
       // We have filenames!
-      console.log("Returning to guest.", returnName, filenames[0]);
       sender.send(returnName, filenames[0]);
     }
   });

@@ -95,7 +95,7 @@ function main(sources: Sources): MainSink {
   rx.Observable.combineLatest(
     data.layout, data.currentPage, data.chapter, sources.canvas.canvas,
   ).forEach(([layout, pageNum, chapter, canvas]) => {
-    layout.paint(chapter, pageNum, canvas);
+    layout.paint(chapter, pageNum, canvas.canvas, canvas.resolution);
   });
 
   // Adjust the active page in the chapter
