@@ -1,17 +1,17 @@
 import * as Electron from "electron";
-import JSX from "./jsx";
 import * as rx from "rxjs";
 import * as Cycle from "@cycle/rxjs-run";
 import {makeDOMDriver, VNode, div, button, canvas, span} from "@cycle/dom";
 import {DOMSource} from "@cycle/dom/rxjs-typings";
-import {Intents, Intent} from "./intent";
-import {MESSAGE} from "../ipc2";
+import {model, Actions, AppState} from "./model";
+import {MESSAGE} from "../ipc";
 import * as _ from "lodash";
 import isolate from "@cycle/isolate";
+import {makeElectronIPCDriver, ElectronIPCStream, createIPCMessage} from "./drivers";
 
 type Sources = {
   DOM: DOMSource;
-  electron: rx.Observable<ElectronMessage>;
+  electron: ElectronIPCStream;
 }
 
 interface DomSink {
@@ -19,118 +19,83 @@ interface DomSink {
 }
 
 interface MainSink extends DomSink {
-  electron: rx.Observable<ElectronMessage>;
+  electron: ElectronIPCStream;
 }
 
-interface MenuSink extends DomSink {
-  DOM: rx.Observable<VNode>;
-  opens: rx.Observable<ElectronMessage>;
-}
+function intent(sources: Sources): {actions: Actions, sinks: {electron: ElectronIPCStream}} {
+  let fileOpens = sources.DOM.select(".file").events("click").map(() =>
+    createIPCMessage(MESSAGE.toHost.OpenFile));
+  let folderOpens = sources.DOM.select(".folder").events("click").map(() =>
+    createIPCMessage(MESSAGE.toHost.OpenFolder));
 
-function menu(sources: {DOM: DOMSource}): MenuSink {
-  let fileOpens = sources.DOM.select(".file").events("click").map(() => ({
-    name: MESSAGE.toHost.OpenFile,
-    data: [],
-  }));
-  let folderOpens = sources.DOM.select(".folder").events("click").map(() => ({
-    name: MESSAGE.toHost.OpenFolder,
-    data: [],
-  }));
-
-  return {
-    opens: rx.Observable.merge(fileOpens, folderOpens),
-    DOM: rx.Observable.of(
-      div(".top-menu", [
-        button(".file", "Select File"),
-        button(".folder", "Select Folder"),
-      ])
-    )
-  };
-}
-
-interface ElectronMessage {
-  name: string;
-  data: any[];
-}
-
-function makeElectronDriver(eventNames: Array<string>) {
-  function driver(outgoingMessages: rx.Observable<ElectronMessage>): rx.Observable<ElectronMessage> {
-    function onNext(msg: ElectronMessage) {
-      console.log("Sending message to host", msg);
-      Electron.ipcRenderer.send(msg.name, ...msg.data);
-    }
-    outgoingMessages.subscribe({
-      next: onNext,
-      error: (...args: any[]) => console.error("Electron driver error occurred. ", ...args),
-      complete: () => {},
-    });
-
-    // Create event streams for all names passed into the driver.
-    let source = rx.Observable.merge(...eventNames.map(name =>
-      rx.Observable.fromEvent(
-        Electron.ipcRenderer,
-        name,
-        (...data) => ({name: name, data: data}))
-    ));
-
-    source.forEach(({name, data}) => console.log("guest got", name, data));
-    return source;
-  }
-  return driver;
-}
-
-interface RendererSources {
-  DOM: DOMSource;
-  pages: rx.Observable<string>;
-}
-interface RendererSink {
-  DOM: rx.Observable<VNode>;
-  actions: {
-    nextPage: rx.Observable<MouseEvent>;
-    prevPage: rx.Observable<MouseEvent>;
-    nextChapter: rx.Observable<MouseEvent>;
-    prevChapter: rx.Observable<MouseEvent>;
-  };
-}
-function renderer(sources: RendererSources): RendererSink {
-  sources.DOM.select("button").events("click").forEach(() => console.log("Button clicked"));
-  // Action streams
-  let actions = {
+  let actions: Actions = {
     nextPage: sources.DOM.select(".next-page").events("click"),
     prevPage: sources.DOM.select(".previous-page").events("click"),
+    setPage: rx.Observable.never(),
     nextChapter: sources.DOM.select(".next-chapter").events("click"),
     prevChapter: sources.DOM.select(".previous-chapter").events("click"),
+    openFile: sources.electron.filter(x => x.name === MESSAGE.toGuest.OpenFile).map(x => x.data[0]),
+    openFolder: sources.electron.filter(x => x.name === MESSAGE.toGuest.OpenFolder).map(x => x.data[0]),
+    closeChapter: rx.Observable.never(),
   };
+
   return {
     actions: actions,
-    DOM: rx.Observable.of(
-      div(".viewport", [
-        div(".image-container", [
-          canvas(),
-        ]),
-        div(".bottom-menu", [
-          button(".previous-chapter", "Previous Chapter"),
-          button(".previous-page", "Previous Page"),
-          span("", "some text"),
-          button(".next-page", "Next Page"),
-          button(".next-chapter", "Next Chapter"),
-        ])
-      ])
-    )
+    sinks: {
+      electron: fileOpens.merge(folderOpens)
+    },
+  };
+}
+
+function view(data: AppState): {DOM: rx.Observable<VNode>} {
+  let totalPages = rx.Observable.of(null).merge(data.chapter.map(x => x.length));
+  let doctoredPage = rx.Observable.of(null).merge(data.currentPage);
+  let merged = rx.Observable.combineLatest(
+    data.openFile,
+    doctoredPage,
+    totalPages,
+  );
+  let withPrefix = rx.Observable.of([
+    null, null, null,
+  ]).merge(merged);
+  return {
+    DOM: withPrefix.map(([openfile, currentPage, totalPages]) => {
+      let inner: VNode;
+      if (openfile == null) {
+        inner = div(".top-menu", [
+          button(".file", "Select File"),
+          button(".folder", "Select Folder"),
+        ]);
+      } else {
+        inner = div(".viewport", [
+          div(".image-container", [
+            canvas(),
+          ]),
+          div(".bottom-menu", [
+            button(".previous-chapter", "Previous Chapter"),
+            button(".previous-page", "Previous Page"),
+            span("", `Page ${currentPage + 1} of ${totalPages}`),
+            button(".next-page", "Next Page"),
+            button(".next-chapter", "Next Chapter"),
+          ])
+        ]);
+      }
+      return div(".application", [inner]);
+    })
   };
 }
 
 function main(sources: Sources): MainSink {
-  let topMenu = isolate(menu)(sources);
-  let viewport = isolate(renderer)({DOM: sources.DOM, pages: rx.Observable.never()});
+  let intents = intent(sources);
+  let actions = intents.actions;
+  let intentSinks = intents.sinks;
+
+  let data = model(actions);
+  let vdom = view(data);
+
   let sinks = {
-    DOM: rx.Observable.combineLatest(topMenu.DOM, viewport.DOM).map(([menu, viewport]) => {
-      return div(".application", [
-        menu,
-        viewport
-      ]);
-    }),
-    electron: topMenu.opens,
+    DOM: vdom.DOM,
+    electron: intentSinks.electron,
   };
 
   return sinks;
@@ -142,7 +107,7 @@ function bootstrap() {
 
   let drivers = {
     DOM: makeDOMDriver("#root"),
-    electron: makeElectronDriver(_.values(MESSAGE.toGuest))
+    electron: makeElectronIPCDriver(_.values(MESSAGE.toGuest))
   };
 
   // returns a function, dunno what it does.

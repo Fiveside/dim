@@ -2,7 +2,7 @@
 import * as Electron from "electron";
 // import {initIPCListeners} from "./ipc";
 import {initEvents} from "./events";
-import {initIPCHostListeners} from "./ipc2";
+import {initIPCHostListeners} from "./ipc";
 import Menu from "./menu";
 
 // Module to control application life.
