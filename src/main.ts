@@ -36,8 +36,7 @@ function createWindow () {
   initEvents(mainWindow);
 
   // Initialize the ipc subsystem
-  // initIPCListeners(mainWindow);
-  initIPCHostListeners();
+  initIPCHostListeners(mainWindow);
 
   mainWindow.setMenu(Menu);
 }

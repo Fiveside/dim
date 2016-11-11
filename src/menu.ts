@@ -1,9 +1,16 @@
 import * as Electron from "electron";
 import {sendEventToRenderProcess} from "./events";
+import * as Actions from "./ipc";
 
 function announce(eventName: string, ...data: Array<any>) {
   return function(menuItem: Electron.MenuItem, bw: Electron.BrowserWindow) {
     sendEventToRenderProcess(bw, eventName, ...data);
+  };
+}
+
+function invokeAction(action: Actions.Action, ...args: any[]) {
+  return function(menuItem: Electron.MenuItem, bw: Electron.BrowserWindow) {
+    action(bw, ...args);
   };
 }
 
@@ -13,15 +20,15 @@ const menu = Electron.Menu.buildFromTemplate([
     submenu: [
       {
         label: "Open File",
-        click: announce("menu:open-file"),
+        click: invokeAction(Actions.openFile),
       },
       {
         label: "Open Folder",
-        click: announce("menu:open-folder"),
+        click: invokeAction(Actions.openFolder),
       },
       {
         label: "Close Chapter",
-        click: announce("menu:unload-viewer"),
+        click: invokeAction(Actions.closeFile),
       },
       {
         label: "Toggle Full Screen",
@@ -31,7 +38,7 @@ const menu = Electron.Menu.buildFromTemplate([
           else
             return "F11";
         })(),
-        click: announce("menu:toggle-full-screen"),
+        click: invokeAction(Actions.toggleFullScreen),
       },
       {
         type: "separator",

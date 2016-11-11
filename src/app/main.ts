@@ -26,16 +26,24 @@ function intent(sources: Sources): {actions: Actions, sinks: {electron: Drivers.
   let folderOpens = sources.DOM.select(".folder").events("click").map(() =>
     Drivers.createIPCMessage(MESSAGE.toHost.OpenFolder));
 
+  function efilter(electron: Drivers.ElectronIPCStream, name: string): Drivers.ElectronIPCStream {
+    return electron.filter(x => x.name === name);
+  }
+  function etranslate(electron: Drivers.ElectronIPCStream, name: string): rx.Observable<any> {
+    return efilter(electron, name).map(x => x.data[0]);
+  }
+
   let actions: Actions = {
     nextPage: sources.DOM.select(".next-page").events("click"),
     prevPage: sources.DOM.select(".previous-page").events("click"),
     setPage: rx.Observable.never(),
     nextChapter: sources.DOM.select(".next-chapter").events("click"),
     prevChapter: sources.DOM.select(".previous-chapter").events("click"),
-    openFile: sources.electron.filter(x => x.name === MESSAGE.toGuest.OpenFile).map(x => x.data[0]),
-    openFolder: sources.electron.filter(x => x.name === MESSAGE.toGuest.OpenFolder).map(x => x.data[0]),
-    closeChapter: rx.Observable.never(),
+    openFile: etranslate(sources.electron, MESSAGE.toGuest.OpenFile),
+    openFolder: etranslate(sources.electron, MESSAGE.toGuest.OpenFolder),
+    closeChapter: efilter(sources.electron, MESSAGE.toGuest.CloseFile),
     setLayout: rx.Observable.never(),
+    isFullscreenChange: etranslate(sources.electron, MESSAGE.toGuest.Fullscreen),
   };
 
   return {
@@ -46,19 +54,20 @@ function intent(sources: Sources): {actions: Actions, sinks: {electron: Drivers.
   };
 }
 
-function view(data: AppState, canvas: Drivers.CanvasRenderSource): {DOM: rx.Observable<VNode>} {
+function view(data: AppState, sources: Sources): {DOM: rx.Observable<VNode>} {
   let totalPages = rx.Observable.of(null).merge(data.chapter.map(x => x.length));
   let doctoredPage = rx.Observable.of(null).merge(data.currentPage);
   let merged = rx.Observable.combineLatest(
     data.openFile,
     doctoredPage,
     totalPages,
+    data.isFullscreen,
   );
   let withPrefix = rx.Observable.of([
-    null, null, null,
+    null, null, null, false,
   ]).merge(merged);
   return {
-    DOM: withPrefix.map(([openfile, currentPage, totalPages]) => {
+    DOM: withPrefix.map(([openfile, currentPage, totalPages, isFullscreen]) => {
       let inner: VNode;
       if (openfile == null) {
         inner = div(".top-menu", [
@@ -68,7 +77,7 @@ function view(data: AppState, canvas: Drivers.CanvasRenderSource): {DOM: rx.Obse
       } else {
         inner = div(".viewport", [
           div(".image-container", [
-            canvas.vtree,
+            sources.canvas.vtree,
           ]),
           div(".bottom-menu", [
             button(".previous-chapter", "Previous Chapter"),
@@ -79,7 +88,8 @@ function view(data: AppState, canvas: Drivers.CanvasRenderSource): {DOM: rx.Obse
           ])
         ]);
       }
-      return div(".application", [inner]);
+      let isfs = isFullscreen ? ".fullscreen" : "";
+      return div(".application" + isfs, [inner]);
     })
   };
 }
@@ -90,7 +100,7 @@ function main(sources: Sources): MainSink {
   let intentSinks = intents.sinks;
 
   let data = model(actions);
-  let vdom = view(data, sources.canvas);
+  let vdom = view(data, sources);
 
   // Paint on the canvas.
   rx.Observable.combineLatest(
@@ -118,7 +128,6 @@ function main(sources: Sources): MainSink {
 
   return sinks;
 }
-
 
 function bootstrap() {
   console.log("Hello from bootstrap!");

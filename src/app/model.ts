@@ -12,6 +12,7 @@ export interface AppState {
   openFile: rx.Observable<string | null>;
   chapter: rx.Observable<VirtualCollection>;
   layout: rx.Observable<Layout>;
+  isFullscreen: rx.Observable<boolean>;
 }
 
 
@@ -24,8 +25,9 @@ export interface Actions {
   prevChapter: rx.Observable<any>;
   openFile: rx.Observable<string>;
   openFolder: rx.Observable<string>;
-  closeChapter: rx.Observable<string>;
+  closeChapter: rx.Observable<any>;
   setLayout: rx.Observable<Layout>;
+  isFullscreenChange: rx.Observable<boolean>;
 }
 
 export function model(actions: Actions): AppState {
@@ -36,15 +38,16 @@ export function model(actions: Actions): AppState {
   // Clean up old archives
   // Create an array of 2, the left one (x[0]) will be GCed and the right
   // is active.
-  archive.scan((l: (VirtualCollection | null)[], r: VirtualCollection) => {
-    l.push(r);
-    l.shift();
-    return l;
-  }, [null, null]).forEach((x: (VirtualCollection | null)[]) => {
-    if (x[0] != null) {
-      x[0].dispose();
-    }
-  });
+  archive.merge(actions.closeChapter.mapTo(null))
+    .scan((l: (VirtualCollection | null)[], r: VirtualCollection) => {
+      l.push(r);
+      l.shift();
+      return l;
+    }, [null, null]).forEach((x: (VirtualCollection | null)[]) => {
+      if (x[0] != null) {
+        x[0].dispose();
+      }
+    });
 
   archive.forEach(x => console.log("Archive is ", x));
 
@@ -63,7 +66,7 @@ export function model(actions: Actions): AppState {
   let currentChapter = rx.Observable.of(null)
     .merge(actions.openFile)
     .merge(actions.openFolder)
-    .merge(actions.closeChapter.map(x => null))
+    .merge(actions.closeChapter.map(x => null));
 
   // This is ugly.
   // if delta is set, then the page change is a delta.
@@ -87,5 +90,6 @@ export function model(actions: Actions): AppState {
     openFile: currentChapter,
     chapter: archive,
     layout: layout,
+    isFullscreen: rx.Observable.of(false).merge(actions.isFullscreenChange),
   };
 }
