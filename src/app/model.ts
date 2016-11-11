@@ -1,11 +1,11 @@
 import * as rx from "rxjs";
 import {DOMSource} from "@cycle/dom/rxjs-typings";
 import {readThing, VirtualCollection} from "../vfs";
-import {toMulticast} from "./util";
+import {toMulticast} from "../util";
+import {Layout, FitLayout, Direction} from "../layout";
 
 type Painter = string;
 type Page = string;
-type Layout = string;
 
 export interface AppState {
   currentPage: rx.Observable<number>;
@@ -32,6 +32,19 @@ export function model(actions: Actions): AppState {
   let archive: rx.Observable<VirtualCollection> = toMulticast(actions.openFile
     .merge(actions.openFolder)
     .flatMap(x => readThing(x)));
+
+  // Clean up old archives
+  // Create an array of 2, the left one (x[0]) will be GCed and the right
+  // is active.
+  archive.scan((l: (VirtualCollection | null)[], r: VirtualCollection) => {
+    l.push(r);
+    l.shift();
+    return l;
+  }, [null, null]).forEach((x: (VirtualCollection | null)[]) => {
+    if (x[0] != null) {
+      x[0].dispose();
+    }
+  });
 
   archive.forEach(x => console.log("Archive is ", x));
 
@@ -67,9 +80,7 @@ export function model(actions: Actions): AppState {
     }, 0).distinctUntilChanged();
 
   // The layout!
-  let layout = rx.Observable.of("Basic Layout").merge(
-    actions.setLayout
-  );
+  let layout = rx.Observable.of(new FitLayout(1, Direction.LTR));
 
   return {
     currentPage: currentPage,

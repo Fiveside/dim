@@ -1,6 +1,8 @@
 import {observable, computed, transaction} from "mobx";
 import * as Drawing from "../lib/drawing";
 import * as Path from "path";
+import * as rx from "rxjs";
+import {unwrappedPromise, UnwrappedPromise} from "../util";
 const natsort = require("natsort");
 
 
@@ -51,12 +53,9 @@ Composition2
 abstract class VirtualEntry {}
 
 export abstract class VirtualCollection extends VirtualEntry {
-  @observable location: string;
-  @observable pages: Array<VirtualPage>;
-  @observable pageNum: number;
-
-  // should behave like [_pageNum, _lPageNum)
-  @computed get _lPageNum() { return this.pageNum + this.currentPageCount; }
+  location: string;
+  pages: Array<VirtualPage>;
+  pageNum: number;
 
   // stacks for the currently loaded pages.
   _nextPageCache: Array<IVirtualPage> = [];
@@ -65,15 +64,12 @@ export abstract class VirtualCollection extends VirtualEntry {
   _nextCacheSize = 20;
   _prevCacheSize = 10;
 
-  @observable currentPages: Array<IVirtualPage> = [];
-  @observable currentPageCount: number = 1;
+  // This is the array of currently loaded pages and the intended length.
+  currentPages: Array<IVirtualPage> = [];
+  currentPageCount: number = 1;
 
-  @computed get currentPageRange(): Array<number> {
-    return this.currentPages.map((x, idx) => idx + this.pageNum);
-  }
-
-  @computed get name(): string { return Path.basename(this.location); }
-  @computed get length(): number { return this.pages.length; }
+  get name(): string { return Path.basename(this.location); }
+  get length(): number { return this.pages.length; }
 
   constructor(pages: Array<VirtualPage>, location: string) {
     super();
@@ -88,10 +84,10 @@ export abstract class VirtualCollection extends VirtualEntry {
     this.jumpPage(0);
   }
 
-  unload(): void {
+  dispose(): void {
     // GC all children.
-    // This collection should be unusable after this.
-    this.pages.forEach(child => child.unload());
+    // This collection should be unusable after this
+    this.pages.forEach(child => child.dispose());
   }
 
   setPageCount(numPages: number): Promise<void> {
@@ -114,42 +110,40 @@ export abstract class VirtualCollection extends VirtualEntry {
     // delayed promises.
     let ps: Array<{(): Promise<any>}> = [];
 
-    transaction(() => {
-      // old items loaded into memory.  Don't need to unload these when done
-      let oldCache = this.currentPages.concat(this._nextPageCache, this._prevPageCache);
+    // old items loaded into memory.  Don't need to unload these when done
+    let oldCache = this.currentPages.concat(this._nextPageCache, this._prevPageCache);
 
-      this.pageNum = pageNum;
-      let fnum = pageNum;
-      let lnum = pageNum + this.currentPageCount;
+    this.pageNum = pageNum;
+    let fnum = pageNum;
+    let lnum = pageNum + this.currentPageCount;
 
-      this.currentPages = this.pages.slice(fnum, lnum);
-      // this.currentPage = this.pages[pageNum];
+    this.currentPages = this.pages.slice(fnum, lnum);
+    // this.currentPage = this.pages[pageNum];
 
-      // up the next and previous cache.
-      this._nextPageCache = this.pages.slice(
-        lnum,
-        lnum + this._nextCacheSize
-      );
-      this._prevPageCache = this.pages.slice(
-        Math.max(fnum - this._prevCacheSize, 0),
-        Math.max(fnum, 0)
-      ).reverse();
+    // up the next and previous cache.
+    this._nextPageCache = this.pages.slice(
+      lnum,
+      lnum + this._nextCacheSize
+    );
+    this._prevPageCache = this.pages.slice(
+      Math.max(fnum - this._prevCacheSize, 0),
+      Math.max(fnum, 0)
+    ).reverse();
 
-      // Unload any pages that are not in the new cache system
-      let newCache = new Set(this.currentPages.concat(this._nextPageCache, this._prevPageCache));
-      oldCache.filter(x => !newCache.has(x)).forEach(x => x.unload());
+    // Unload any pages that are not in the new cache system
+    let newCache = new Set(this.currentPages.concat(this._nextPageCache, this._prevPageCache));
+    oldCache.filter(x => !newCache.has(x)).forEach(x => x.unload());
 
-      // Load pages that require it in a mildly smart way.
-      // First the current page, Then the next page,
-      p.push(Promise.all(this.currentPages.map(x => x.load())));
+    // Load pages that require it in a mildly smart way.
+    // First the current page, Then the next page,
+    p.push(Promise.all(this.currentPages.map(x => x.load())));
 
-      // Load all subsequent pages later on.
-      if (this._nextPageCache[0] != null) {
-        ps.push(() => this._nextPageCache[0].load());
-      }
-      ps.push(() => Promise.all(this._nextPageCache.slice(1).map(x => x.load())));
-      ps.push(() => Promise.all(this._prevPageCache.map(x => x.load())));
-    });
+    // Load all subsequent pages later on.
+    if (this._nextPageCache[0] != null) {
+      ps.push(() => this._nextPageCache[0].load());
+    }
+    ps.push(() => Promise.all(this._nextPageCache.slice(1).map(x => x.load())));
+    ps.push(() => Promise.all(this._prevPageCache.map(x => x.load())));
 
     // Load all p promises immediately.
     await Promise.all(p);
@@ -241,9 +235,10 @@ export interface IVirtualPageProps {
 }
 
 export interface IVirtualPage {
-  image: Drawing.DrawSource;
+  image: Promise<HTMLCanvasElement>;
   load(): Promise<Drawing.DrawSource>;
   unload(): void;
+  dispose(): void;
   isLoaded: boolean;
   isLoading: boolean;
   name: string;
@@ -253,10 +248,12 @@ export abstract class VirtualPage extends VirtualEntry implements IVirtualPage {
   name: string;
   _source: string;
 
-  image: HTMLCanvasElement;
-  parent: VirtualCollection;
+  image: Promise<HTMLCanvasElement>;
+  _imgResolver: UnwrappedPromise<HTMLCanvasElement>;
+  // image: rx.ReplaySubject<HTMLCanvasElement> = new rx.ReplaySubject(1);
+  // image: HTMLCanvasElement;
 
-  @observable isLoaded: boolean = false;
+  isLoaded: boolean = false;
   isLoading: boolean = false;
 
   // A flag that dictates whether or not the last operation invoked on this
@@ -270,6 +267,8 @@ export abstract class VirtualPage extends VirtualEntry implements IVirtualPage {
       debugger;
     }
     this.name = opts.name;
+    this._imgResolver = unwrappedPromise();
+    this.image = this._imgResolver.promise;
   }
 
   // Should return a url that we can open (blob urls work too.)
@@ -334,7 +333,7 @@ export abstract class VirtualPage extends VirtualEntry implements IVirtualPage {
       img.src = this._source;
     });
 
-    this.image = canvas;
+    this._imgResolver.resolve(canvas);
     return canvas;
   }
 
@@ -348,9 +347,14 @@ export abstract class VirtualPage extends VirtualEntry implements IVirtualPage {
     }
 
     this.isLoaded = false;
-    delete this.image;
+    this._imgResolver = unwrappedPromise();
+    this.image = this._imgResolver.promise;
     let source = this._source;
     this._source = null;
     this._unload(source);
+  }
+
+  dispose(): void {
+    this.unload();
   }
 }

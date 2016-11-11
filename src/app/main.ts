@@ -91,6 +91,17 @@ function main(sources: Sources): MainSink {
   let data = model(actions);
   let vdom = view(data, sources.canvas);
 
+  // Paint on the canvas.
+  rx.Observable.combineLatest(
+    data.layout, data.currentPage, data.chapter, sources.canvas.canvas,
+  ).forEach(([layout, pageNum, chapter, canvas]) => {
+    layout.paint(chapter, pageNum, canvas);
+  });
+
+  // Adjust the active page in the chapter
+  rx.Observable.combineLatest(data.currentPage, data.chapter)
+    .forEach(([p, c]) => c.jumpPage(p));
+
   let sinks = {
     DOM: vdom.DOM,
     electron: intentSinks.electron,

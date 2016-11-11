@@ -1,6 +1,6 @@
 import * as Electron from "electron";
 import * as rx from "rxjs";
-import {toMulticast} from "./util";
+import {toMulticast} from "../util";
 import {VirtualCollection} from "../vfs";
 import {VNode, h} from "@cycle/dom";
 

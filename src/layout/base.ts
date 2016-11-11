@@ -63,14 +63,6 @@ export abstract class Layout {
     this.pages.navPrev();
   }
 
-  get currentPages() {
-    return this.pages.currentPages;
-  }
-
-  get currentPageRange() {
-    return this.pages.currentPageRange;
-  }
-
   abstract _paint(): void;
 
   paint(): void {
