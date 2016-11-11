@@ -17,6 +17,7 @@ type Sources = {
 interface MainSink {
   DOM: rx.Observable<VNode>;
   electron: Drivers.ElectronIPCStream;
+  title: rx.Observable<string>;
 }
 
 function intent(sources: Sources): {actions: Actions, sinks: {electron: Drivers.ElectronIPCStream}} {
@@ -102,9 +103,17 @@ function main(sources: Sources): MainSink {
   rx.Observable.combineLatest(data.currentPage, data.chapter)
     .forEach(([p, c]) => c.jumpPage(p));
 
+  // Generate the page title.
+  let titles = rx.Observable.combineLatest(
+    data.chapter, data.currentPage
+  ).map(([chapter, pageNum]) =>
+    `Dim ${chapter.name} <${chapter.pages[pageNum].name}>`
+  ).merge(actions.closeChapter.map(() => "Dim"));
+
   let sinks = {
     DOM: vdom.DOM,
     electron: intentSinks.electron,
+    title: titles,
   };
 
   return sinks;
@@ -118,6 +127,7 @@ function bootstrap() {
     DOM: makeDOMDriver("#root"),
     electron: Drivers.makeElectronIPCDriver(_.values(MESSAGE.toGuest)),
     canvas: Drivers.makeCanvasRenderDriver(),
+    title: Drivers.makeTitleDriver(),
   };
 
   // returns a function, dunno what it does.

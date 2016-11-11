@@ -107,3 +107,10 @@ export function makeCanvasRenderDriver() {
   }
   return driver;
 }
+
+export function makeTitleDriver() {
+  function driver(titles: rx.Observable<string>): void {
+    titles.forEach(t => document.title = t);
+  }
+  return driver;
+}
