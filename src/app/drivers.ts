@@ -84,14 +84,11 @@ export function makeCanvasRenderDriver() {
     );
 
     // Resize the canvas whenever the window is resized.
-    let windowResolution = rx.Observable
-      .of([window.innerWidth, window.innerHeight])
-      .merge(rx.Observable.fromEvent(window, "resize")
-        .map(() => [window.innerWidth, window.innerHeight]),
-      );
+    let resizes = rx.Observable.of(null)
+      .merge(rx.Observable.fromEvent(window, "resize").mapTo(null));
 
     let messages = rx.Observable.combineLatest(
-      canvasCache, containerCache, windowResolution
+      canvasCache, containerCache, resizes
     ).map(([canvas, container]) => {
       let bbox = container.getBoundingClientRect();
       return <CanvasRenderMessage>{
