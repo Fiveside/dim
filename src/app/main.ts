@@ -26,6 +26,11 @@ function intent(sources: Sources): {actions: Actions, sinks: {electron: Drivers.
   let folderOpens = sources.DOM.select(".folder").events("click").map(() =>
     Drivers.createIPCMessage(MESSAGE.toHost.OpenFolder));
 
+  let nextPage = sources.DOM.select(".next-page").events("click").merge(
+    sources.DOM.select("canvas").events("click"));
+  let prevPage = sources.DOM.select(".previous-page").events("click").merge(
+    sources.DOM.select("canvas").events("contextmenu"));
+
   function efilter(electron: Drivers.ElectronIPCStream, name: string): Drivers.ElectronIPCStream {
     return electron.filter(x => x.name === name);
   }
@@ -34,8 +39,8 @@ function intent(sources: Sources): {actions: Actions, sinks: {electron: Drivers.
   }
 
   let actions: Actions = {
-    nextPage: sources.DOM.select(".next-page").events("click"),
-    prevPage: sources.DOM.select(".previous-page").events("click"),
+    prevPage: prevPage,
+    nextPage: nextPage,
     setPage: rx.Observable.never(),
     nextChapter: sources.DOM.select(".next-chapter").events("click"),
     prevChapter: sources.DOM.select(".previous-chapter").events("click"),

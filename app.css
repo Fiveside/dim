@@ -3,6 +3,9 @@ body {
   color: white;
 
   margin: 0;
+
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .image-container {
