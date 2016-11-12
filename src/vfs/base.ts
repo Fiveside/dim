@@ -91,6 +91,9 @@ export abstract class VirtualCollection extends VirtualEntry {
   }
 
   setPageCount(numPages: number): Promise<void> {
+    if (this.currentPageCount === numPages) {
+      return Promise.resolve();
+    }
     this.currentPageCount = numPages;
     return this.jumpPage(this.pageNum);
   }

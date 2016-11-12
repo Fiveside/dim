@@ -1,8 +1,10 @@
+import * as Electron from "electron";
 import * as rx from "rxjs";
 import {DOMSource} from "@cycle/dom/rxjs-typings";
 import {readThing, VirtualCollection} from "../vfs";
 import {toMulticast} from "../util";
-import {Layout, FitLayout, Direction} from "../layout";
+import {Layout, FitLayout, Direction, PageLayout} from "../layout";
+import {MESSAGE} from "../ipc";
 
 type Painter = string;
 type Page = string;
@@ -30,6 +32,98 @@ export interface Actions {
   isFullscreenChange: rx.Observable<boolean>;
 }
 
+enum PageDirection {
+  none = 0,
+  next = 1,
+  prev = -1,
+}
+interface PageScanLayout {
+  layout: Layout;  // Incoming indicates layout changed.
+  chapter: VirtualCollection;
+}
+interface PageScanJump {
+  set: boolean;  // Incoming indicates page change.
+  by: PageDirection;
+}
+interface PageScanState {
+  layout: Layout;
+  chapter: VirtualCollection;
+  pageNum: Promise<number>;
+}
+type PageScan = PageScanLayout | PageScanJump;
+
+async function addAFuckingNumberToAnotherFuckingNumber(base: number, cb: {(): Promise<number>}, modifier: number, max: number): Promise<number> {
+  let delta = await cb();
+  let newPageNumber = base + (delta * modifier);
+
+  // clamp that page number.
+  return Math.min(max - 1, Math.max(0, newPageNumber));
+}
+
+// This feels really ugly
+function pageReducer(l: PageScanState, r: PageScan): PageScanState {
+  let updated: PageScanState = Object.assign({}, l);
+  if ((<PageScanJump>r).set == null) {
+    // its a layout.
+    Object.assign(updated, r);
+    return updated;
+  }
+  // its a jump.  Make sure that we have a layout to work with.
+  if (l.layout == null || l.chapter == null) {
+    return l;
+  }
+
+  let {set, by} = <PageScanJump>r;
+  let newPageNum: Promise<number>;
+  if (set) {
+    newPageNum = Promise.resolve(by);
+  } else {
+    if (by === PageDirection.next) {
+      newPageNum = l.pageNum.then(x => addAFuckingNumberToAnotherFuckingNumber(x,
+        () => l.layout.nextPageStep(l.chapter, x),
+        1, l.chapter.length));
+    } else if (by === PageDirection.prev) {
+      newPageNum = l.pageNum.then(x => addAFuckingNumberToAnotherFuckingNumber(x,
+        () => l.layout.prevPageStep(l.chapter, x),
+        -1, l.chapter.length));
+    } else {
+      // PageDirection.none
+      newPageNum = l.pageNum;
+    }
+    updated.pageNum = newPageNum;
+  }
+  return updated;
+}
+
+function currentPageStream(actions: Actions, chapter: rx.Observable<VirtualCollection>, layout: rx.Observable<Layout>): rx.Observable<number> {
+  let pageDelta = rx.Observable.of(PageDirection.none)
+    .merge(actions.nextPage.mapTo(PageDirection.next))
+    .merge(actions.prevPage.mapTo(PageDirection.prev));
+  let pageResets = actions.nextChapter
+    .merge(actions.prevChapter)
+    .merge(actions.openFile)
+    .merge(actions.openFolder)
+    .merge(actions.closeChapter)
+    .mapTo(0)
+    .merge(actions.setPage);
+
+  // if delta is set, then the page change is a delta.
+  // if set is set, then just redeclare the current page.
+  // The type reported is Promise<number> but its actually an observable.
+  // there's something wrong with the concatAll() type definition
+  let pageChanges: rx.Observable<number> = pageDelta
+    .map(x => (<PageScanJump>{set: false, by: x}))
+    .merge(pageResets.map(x => (<PageScanJump>{set: true, by: x})))
+    .merge(
+      rx.Observable.combineLatest(chapter, layout)
+        .map(([chapter, layout]) => (<PageScanLayout>{chapter, layout}))
+    ).scan(pageReducer, {pageNum: Promise.resolve(0), chapter: null, layout: null})
+    .map(x => x.pageNum)
+    .concatAll();
+
+    return pageChanges;
+}
+
 export function model(actions: Actions): AppState {
   let archive: rx.Observable<VirtualCollection> = toMulticast(actions.openFile
     .merge(actions.openFolder)
@@ -49,47 +143,29 @@ export function model(actions: Actions): AppState {
       }
     });
 
-  archive.forEach(x => console.log("Archive is ", x));
+  // The layout!
+  let layout = rx.Observable.of(new FitLayout(PageLayout.Smaht, Direction.LTR));
 
-  // page delta gonna be weird with layouts.
-  let pageDelta = rx.Observable.of(0)
-    .merge(actions.nextPage.mapTo(1))
-    .merge(actions.prevPage.mapTo(-1));
-  let pageResets = actions.nextChapter
-    .merge(actions.prevChapter)
-    .merge(actions.openFile)
-    .merge(actions.openFolder)
-    .merge(actions.closeChapter)
-    .mapTo(0)
-    .merge(actions.setPage);
+  enum PageDirection {
+    none = 0,
+    next = 1,
+    prev = -1,
+  }
 
   let currentChapter = rx.Observable.of(null)
     .merge(actions.openFile)
     .merge(actions.openFolder)
     .merge(actions.closeChapter.map(x => null));
 
-  // This is ugly.
-  // if delta is set, then the page change is a delta.
-  // if set is set, then just redeclare the current page.
-  let pageChanges = pageDelta.map(x => ({set: false, by: x}))
-    .merge(pageResets.map(x => ({set: true, by: x})));
-
-  // Make sure that the current page doesn't exceed the total number of pages.
-  let currentPage = rx.Observable.combineLatest(pageChanges, archive)
-    .scan((l: number, r: [{set: boolean, by: number}, VirtualCollection]) => {
-      let [{set, by}, a] = r;
-      let num = set ? by : l + by;
-      return Math.min(a.length - 1, Math.max(0, num));
-    }, 0).distinctUntilChanged();
-
-  // The layout!
-  let layout = rx.Observable.of(new FitLayout(1, Direction.LTR));
+  let isFullscreen = rx.Observable.of(
+    Electron.ipcRenderer.sendSync(MESSAGE.toHost.IsFullscreen)
+  ).merge(actions.isFullscreenChange);
 
   return {
-    currentPage: currentPage,
+    currentPage: currentPageStream(actions, archive, layout),
     openFile: currentChapter,
     chapter: archive,
     layout: layout,
-    isFullscreen: rx.Observable.of(false).merge(actions.isFullscreenChange),
+    isFullscreen: isFullscreen,
   };
 }

@@ -1,5 +1,5 @@
-import {Layout, DrawSource} from "./base";
-import {VirtualCollection, IVirtualPage} from "../vfs";
+import {DrawSource, Layout, Resolution, PageLayout} from "./base";
+import {VirtualCollection} from "../vfs";
 import * as _ from "lodash";
 
 interface Dimensions {
@@ -53,11 +53,6 @@ function paintTwo(canvas: HTMLCanvasElement, lsource: DrawSource, rsource: DrawS
   let middle = cwhalf;
   let ch = Math.floor(canvas.height);
 
-  // Swap halves because this is manga.
-  let temp = lsource;
-  lsource = rsource;
-  rsource = temp;
-
   let ld = getDimensions(lsource.width, lsource.height, cwhalf, ch);
   let rd = getDimensions(rsource.width, rsource.height, cwhalf, ch);
 
@@ -84,154 +79,194 @@ function paintTwo(canvas: HTMLCanvasElement, lsource: DrawSource, rsource: DrawS
   ctx.drawImage(rsource, rd.x, rd.y, rd.width, rd.height);
 }
 
-export class SinglePageFitLayout extends Layout {
-  constructor(pages: VirtualCollection) {
-    super(pages);
-    pages.setPageCount(1);
+export class FitLayout extends Layout {
+  _paintOne(canvas: HTMLCanvasElement, suggestedRes: Resolution, page: DrawSource): void {
+    canvas.width = suggestedRes.x;
+    canvas.height = suggestedRes.y;
+    paintOne(canvas, page);
+  }
+  _paintTwo(canvas: HTMLCanvasElement, suggestedRes: Resolution, leftPage: DrawSource, rightPage: DrawSource): void {
+    canvas.width = suggestedRes.x;
+    canvas.height = suggestedRes.y;
+    paintTwo(canvas, leftPage, rightPage);
   }
 
-  _paint(): void {
-    let canvas = this.canvas;
-    let source = this.pages.currentPages[0].image;
-    // if (source == null) {
-    //   console.warn(
-    //     "Layout failed, image is null.  Loaded:",
-    //     this.pages.currentPages[0].isLoaded
-    //   );
-    // }
-    paintOne(canvas, source);
+
+  async nextPageStep(chapter: VirtualCollection, pageNum: number): Promise<number> {
+    let lpc = chapter.pages[pageNum];
+    let rpc = chapter.pages[pageNum + 1];
+
+    if (lpc == null || rpc == null || this.layoutType === PageLayout.Single) {
+      return 1;
+    }
+    if (this.layoutType === PageLayout.Double) {
+      return 2;
+    }
+
+    let [lpage, rpage] = await Promise.all([lpc.image, rpc.image]);
+    if (this.isSinglePageMode(lpage) || this.isSinglePageMode(rpage)) {
+      return 1;
+    }
+    return 2;
+  }
+
+  async prevPageStep(chapter: VirtualCollection, pageNum: number): Promise<number> {
+    let lpc = chapter.pages[pageNum - 1];
+    let rpc = chapter.pages[pageNum - 2];
+
+    if (lpc == null || rpc == null || this.layoutType === PageLayout.Single) {
+      return 1;
+    }
+    if (this.layoutType === PageLayout.Double) {
+      return 2;
+    }
+
+    let [lpage, rpage] = await Promise.all([lpc.image, rpc.image]);
+    if (this.isSinglePageMode(lpage) || this.isSinglePageMode(rpage)) {
+      return 1;
+    }
+    return 2;
+  }
+
+  cacheCount(): number {
+    if (this.layoutType === PageLayout.Single) {
+      return 1;
+    }
+    return 2;
   }
 }
 
-export class DualPageFitLayout extends Layout {
-  constructor(pages: VirtualCollection) {
-    super(pages);
-    pages.setPageCount(2);
-  }
+// export class SinglePageFitLayout extends Layout {
+//   _paint(): void {
+//     let canvas = this.canvas;
+//     let source = this.pages.currentPages[0].image;
+//     // if (source == null) {
+//     //   console.warn(
+//     //     "Layout failed, image is null.  Loaded:",
+//     //     this.pages.currentPages[0].isLoaded
+//     //   );
+//     // }
+//     paintOne(canvas, source);
+//   }
+// }
 
-  _paint(): void {
-    // Split canvas in 2 halves.
-    // Paint first page right aligned on left half
-    // Paint second page left aligned on right half.
-    // Paint as 2 separate resized entities
-    //   (to smooth over terrible scanlator resizing)
-    // let canvas = this.canvas;
-    // let cw = Math.floor(canvas.width);
-    // let cwhalf = Math.floor(cw / 2);
-    // let middle = cwhalf;
-    // let ch = Math.floor(canvas.height);
-    // let [pl, pr] = this.pages.currentPages.map(x => x.image);
+// export class DualPageFitLayout extends Layout {
+//   constructor(pages: VirtualCollection) {
+//     super(pages);
+//     pages.setPageCount(2);
+//   }
 
-    // let ld = getDimensions(pl.width, pl.height, cwhalf, ch);
-    // let rd = getDimensions(pr.width, pr.height, cwhalf, ch);
+//   _paint(): void {
+//     // Split canvas in 2 halves.
+//     // Paint first page right aligned on left half
+//     // Paint second page left aligned on right half.
+//     // Paint as 2 separate resized entities
+//     //   (to smooth over terrible scanlator resizing)
+//     // let canvas = this.canvas;
+//     // let cw = Math.floor(canvas.width);
+//     // let cwhalf = Math.floor(cw / 2);
+//     // let middle = cwhalf;
+//     // let ch = Math.floor(canvas.height);
+//     // let [pl, pr] = this.pages.currentPages.map(x => x.image);
 
-    // // If either left or right side is oblong, while the other isn't, scoot
-    // // the other over to give the oblong one more room.
-    // if (ld.y !== 0 && rd.y === 0) {
-    //   // left is wide
-    //   middle += cwhalf - rd.width;
-    //   ld = getDimensions(pl.width, pl.height, middle, ch);
-    // } else if (ld.y === 0 && rd.y !== 0) {
-    //   // Right is wide
-    //   middle -= cwhalf - ld.width;
-    //   rd = getDimensions(pr.width, pr.height, cw - middle, ch);
-    // }
+//     // let ld = getDimensions(pl.width, pl.height, cwhalf, ch);
+//     // let rd = getDimensions(pr.width, pr.height, cwhalf, ch);
 
-    // // Calculate x
-    // ld.x = middle - ld.width;
-    // rd.x = middle;
+//     // // If either left or right side is oblong, while the other isn't, scoot
+//     // // the other over to give the oblong one more room.
+//     // if (ld.y !== 0 && rd.y === 0) {
+//     //   // left is wide
+//     //   middle += cwhalf - rd.width;
+//     //   ld = getDimensions(pl.width, pl.height, middle, ch);
+//     // } else if (ld.y === 0 && rd.y !== 0) {
+//     //   // Right is wide
+//     //   middle -= cwhalf - ld.width;
+//     //   rd = getDimensions(pr.width, pr.height, cw - middle, ch);
+//     // }
 
-    // // paint!
-    // let ctx = canvas.getContext("2d");
-    // ctx.clearRect(0, 0, cw, ch);
-    // ctx.drawImage(pl, ld.x, ld.y, ld.width, ld.height);
-    // ctx.drawImage(pr, rd.x, rd.y, rd.width, rd.height);
+//     // // Calculate x
+//     // ld.x = middle - ld.width;
+//     // rd.x = middle;
 
-    let canvas = this.canvas;
-    let [lsource, rsource] = this.pages.currentPages.map(x => x.image);
+//     // // paint!
+//     // let ctx = canvas.getContext("2d");
+//     // ctx.clearRect(0, 0, cw, ch);
+//     // ctx.drawImage(pl, ld.x, ld.y, ld.width, ld.height);
+//     // ctx.drawImage(pr, rd.x, rd.y, rd.width, rd.height);
 
-    // If we only have one page, then just paint that one.
-    if (rsource == null) {
-      paintOne(canvas, lsource);
-    } else {
-      paintTwo(canvas, lsource, rsource);
-    }
-  }
-}
+//     let canvas = this.canvas;
+//     let [lsource, rsource] = this.pages.currentPages.map(x => x.image);
 
-function isSinglePageMode(page: IVirtualPage): boolean {
-  // If the image isn't loaded, then assume single page mode.
-  if (!page.isLoaded) {
-    return false;
-  }
+//     // If we only have one page, then just paint that one.
+//     if (rsource == null) {
+//       paintOne(canvas, lsource);
+//     } else {
+//       paintTwo(canvas, lsource, rsource);
+//     }
+//   }
+// }
 
-  // Check and see if the left page's aspect ratio is beyond some threshold
-  // If so, then paint and behave in single page mode
-  let ar = page.image.width / page.image.height;
-  return ar >= 1;
-}
+// export class SmartDualPageFitLayout extends Layout {
+//   constructor(pages: VirtualCollection) {
+//     super(pages);
+//     pages.setPageCount(2);
+//   }
 
-export class SmartDualPageFitLayout extends Layout {
-  constructor(pages: VirtualCollection) {
-    super(pages);
-    pages.setPageCount(2);
-  }
+//   isSinglePageMode() {
+//     // If there's only one page, then just paint it.
+//     let pages = this.pages.currentPages.filter(x => x.isLoaded);
+//     if (pages.length <= 1) {
+//       return true;
+//     }
 
-  isSinglePageMode() {
-    // If there's only one page, then just paint it.
-    let pages = this.pages.currentPages.filter(x => x.isLoaded);
-    if (pages.length <= 1) {
-      return true;
-    }
+//     let [l, r] = pages;
+//     return isSinglePageMode(l) || isSinglePageMode(r);
+//   }
 
-    let [l, r] = pages;
-    return isSinglePageMode(l) || isSinglePageMode(r);
-  }
+//   _paint(): void {
+//     let [lpage, rpage] = this.pages.currentPages.map(x => x.image);
+//     let canvas = this.canvas;
+//     if (this.isSinglePageMode()) {
+//       paintOne(canvas, lpage);
+//     } else {
+//       paintTwo(canvas, lpage, rpage);
+//     }
+//   }
 
-  _paint(): void {
-    let [lpage, rpage] = this.pages.currentPages.map(x => x.image);
-    let canvas = this.canvas;
-    if (this.isSinglePageMode()) {
-      paintOne(canvas, lpage);
-    } else {
-      paintTwo(canvas, lpage, rpage);
-    }
-  }
+//   nextPage() {
+//     if (this.isSinglePageMode()) {
+//       this.pages.shiftNext();
+//     } else {
+//       this.pages.navNext();
+//     }
+//   }
 
-  nextPage() {
-    if (this.isSinglePageMode()) {
-      this.pages.shiftNext();
-    } else {
-      this.pages.navNext();
-    }
-  }
+//   prevPage() {
+//     // Get the previous page first and check to see if that is a single page we
+//     // need to navigate to
+//     let ppage = this.pages.pages[this.pages.pageNum - 1];
+//     if (ppage == null) {
+//       return;
+//     }
 
-  prevPage() {
-    // Get the previous page first and check to see if that is a single page we
-    // need to navigate to
-    let ppage = this.pages.pages[this.pages.pageNum - 1];
-    if (ppage == null) {
-      return;
-    }
+//     if (isSinglePageMode(ppage)) {
+//       this.pages.shiftPrev();
+//     } else {
+//       this.pages.navPrev();
+//     }
+//   }
 
-    if (isSinglePageMode(ppage)) {
-      this.pages.shiftPrev();
-    } else {
-      this.pages.navPrev();
-    }
-  }
+//   get currentPageRange() {
+//     if (this.isSinglePageMode()) {
+//       return [this.pages.currentPageRange[0]];
+//     }
+//     return this.pages.currentPageRange;
+//   }
 
-  get currentPageRange() {
-    if (this.isSinglePageMode()) {
-      return [this.pages.currentPageRange[0]];
-    }
-    return this.pages.currentPageRange;
-  }
-
-  get currentPages() {
-    if (this.isSinglePageMode()) {
-      return [this.pages.currentPages[0]];
-    }
-    return this.pages.currentPages;
-  }
-}
+//   get currentPages() {
+//     if (this.isSinglePageMode()) {
+//       return [this.pages.currentPages[0]];
+//     }
+//     return this.pages.currentPages;
+//   }
+// }

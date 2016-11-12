@@ -109,14 +109,17 @@ function main(sources: Sources): MainSink {
     layout.paint(chapter, pageNum, canvas.canvas, canvas.resolution);
   });
 
+  // Adjust the number of pages kept alive in the cache based on the layout
+  rx.Observable.combineLatest(data.layout, data.chapter)
+    .forEach(([layout, chapter]) => chapter.setPageCount(layout.cacheCount()));
+
+  let cpages = rx.Observable.combineLatest(data.chapter, data.currentPage);
+
   // Adjust the active page in the chapter
-  rx.Observable.combineLatest(data.currentPage, data.chapter)
-    .forEach(([p, c]) => c.jumpPage(p));
+  cpages.forEach(([c, p]) => c.jumpPage(p));
 
   // Generate the page title.
-  let titles = rx.Observable.combineLatest(
-    data.chapter, data.currentPage
-  ).map(([chapter, pageNum]) =>
+  let titles = cpages.map(([chapter, pageNum]) =>
     `Dim ${chapter.name} <${chapter.pages[pageNum].name}>`
   ).merge(actions.closeChapter.map(() => "Dim"));
 

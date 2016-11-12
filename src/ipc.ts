@@ -1,8 +1,5 @@
 import * as Electron from "electron";
 
-// import * as EventEmitter from "events";
-const EventEmitter = require("events");
-
 export interface Action {
   (bw: Electron.BrowserWindow, ...data: any[]): void;
 }
@@ -13,12 +10,23 @@ function ipcToAction(cb: {(bw: Electron.BrowserWindow, ...data: any[]): void}) {
 }
 
 const CALLBACKS: Array<{name: string, cb: Electron.IpcMainEventListener}> = [];
+
+// Registers and returns an action.  Useful for actions that can be directly
+// called from the host process.
 function register<T extends Action>(name: string, cb: T) {
   CALLBACKS.push({
     name: name,
     cb: ipcToAction(cb),
   });
   return cb;
+}
+
+// Registers a direct ipc listener.  Required for synchronous IPC.
+function registerRaw(name: string, cb: Electron.IpcMainEventListener) {
+  CALLBACKS.push({
+    name: name,
+    cb: cb,
+  });
 }
 
 export function initIPCHostListeners(bw: Electron.BrowserWindow) {
@@ -46,6 +54,7 @@ export const MESSAGE = {
   toHost: {
     OpenFile: "messagebox:open-file", // Request file picker.
     OpenFolder: "messagebox:open-folder", // Request folder picker.
+    IsFullscreen: "window:is-full-screen", // Sync call, is fullscreen.
     SetFullScreen: "window:set-full-screen", // Declare new fullscreen state.
     ToggleFullScreen: "window:toggle-full-screen", // Switch fullscreen state.
   },
@@ -97,4 +106,9 @@ export const setFullScreen = register(MESSAGE.toHost.SetFullScreen,
 export const toggleFullScreen = register(MESSAGE.toHost.ToggleFullScreen,
 (bw: Electron.BrowserWindow) => {
   setFullScreen(bw, !bw.isFullScreen());
+});
+
+registerRaw(MESSAGE.toHost.IsFullscreen, (event: Electron.IpcMainEvent) => {
+  let bw = Electron.BrowserWindow.fromWebContents(event.sender);
+  event.returnValue = bw.isFullScreen();
 });

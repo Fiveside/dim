@@ -1,10 +1,9 @@
 import * as Electron from "electron";
-import {sendEventToRenderProcess} from "./events";
 import * as Actions from "./ipc";
 
 function announce(eventName: string, ...data: Array<any>) {
   return function(menuItem: Electron.MenuItem, bw: Electron.BrowserWindow) {
-    sendEventToRenderProcess(bw, eventName, ...data);
+    console.warn("using old thingy, upgrade this.");
   };
 }
 

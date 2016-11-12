@@ -1,76 +1,104 @@
 import {VirtualCollection} from "../vfs";
 import {autobind} from "core-decorators";
-import {observable, autorun} from "mobx";
 import {throttleAnimationFrame} from "../lib/util";
 import * as _ from "lodash";
 
-export interface LayoutConstructor {
-  new(pages: VirtualCollection): Layout;
-}
+// export interface LayoutConstructor {
+//   new(pages: VirtualCollection): Layout;
+// }
 
 export type DrawSource = HTMLCanvasElement | HTMLImageElement;
 
-export abstract class Layout {
-  @observable pages: VirtualCollection;
-  @observable canvas?: HTMLCanvasElement;
-  _onDestroy: Array<{(): void}> = [];
+export enum Direction {
+  RTL,
+  LTR
+}
+export enum PageLayout {
+  Single,
+  Double,
+  Smaht,
+}
 
-  constructor(pages: VirtualCollection) {
-    this.pages = pages;
-    this._onDestroy.push(autorun(this._tick));
-    this.delayPaint = throttleAnimationFrame(this.paint.bind(this));
+export interface Resolution {
+  x: number;
+  y: number;
+}
+
+export interface ILayout {
+  layoutType: PageLayout;
+  direction: Direction;
+
+  // Paints to the specified canvas.
+  paint(chapter: VirtualCollection, pageNum: number, canvas: HTMLCanvasElement, suggestedRes: Resolution): void;
+
+  // Returns the suggested number of pages to step when going to the next page.
+  nextPageStep(chapter: VirtualCollection, pageNum: number): Promise<number>;
+
+  // Returns the suggested number of pages to step when going to the previous page.
+  prevPageStep(chapter: VirtualCollection, pageNum: number): Promise<number>;
+
+  // Returns the suggested number of pages to keep actively in the cache.
+  cacheCount(): number;
+}
+
+export abstract class Layout implements ILayout {
+  layoutType: PageLayout;
+  direction: Direction;
+  constructor(type: PageLayout, direction: Direction) {
+    this.layoutType = type;
+    this.direction = direction;
+  }
+  abstract nextPageStep(chapter: VirtualCollection, pageNum: number): Promise<number>;
+  abstract prevPageStep(chapter: VirtualCollection, pageNum: number): Promise<number>;
+  abstract cacheCount(): number;
+
+  abstract _paintOne(canvas: HTMLCanvasElement, suggestedRes: Resolution, page: DrawSource): void;
+  abstract _paintTwo(canvas: HTMLCanvasElement, suggestedRes: Resolution, leftPage: DrawSource, rightPage: DrawSource): void;
+
+  isSinglePageMode(img: DrawSource): boolean {
+    // Check and see if the left page's aspect ratio is beyond some threshold
+    // If so, then paint and behave in single page mode
+    let ar = img.width / img.height;
+    return ar >= 1;
   }
 
-  // Set and clear without destroying the layout
-  setCanvas(canvas: HTMLCanvasElement): void {
-    if (this.canvas !== canvas) {
-      this.canvas = canvas;
-    }
-  }
-  clearCanvas(): void {
-    delete this.canvas;
-  }
+  async paint(chapter: VirtualCollection, pageNum: number, canvas: HTMLCanvasElement, suggestedRes: Resolution): Promise<void> {
+    let lpc = chapter.pages[pageNum];
+    let rpc = chapter.pages[pageNum + 1];
 
-  destroy(): void {
-    this._onDestroy.forEach(x => x());
-  }
-
-  @autobind
-  _tick(): void {
-    // Sanity checks.  Required as this is in an autorun.
-    if (this.pages == null || this.canvas == null) {
+    if (lpc == null) {
+      // Can't paint.
+      console.error("Cannot paint, left page is null (???)");
       return;
     }
-    // let canvas = this.canvas;
-    // if (canvas == null || pages == null) {
-    //   return;
-    // }
-    if (!_.every(this.pages.currentPages, x => x.isLoaded)) {
-      // Still waiting on some pages to load.
+
+    canvas.width = suggestedRes.x;
+    canvas.height = suggestedRes.y;
+
+    let lpage = await lpc.image;
+
+    if (this.layoutType === PageLayout.Single || rpc == null) {
+      // Single layout.
+      this._paintOne(canvas, suggestedRes, lpage);
       return;
     }
 
-    this.delayPaint();
-  }
+    let rpage = await rpc.image;
+    let chooseSingle = this.isSinglePageMode(lpage) || this.isSinglePageMode(rpage)
 
-  // The throttleAnimationFrame version of this.paint.
-  delayPaint: {(): void};
-
-  nextPage() {
-    this.pages.navNext();
-  }
-  prevPage() {
-    this.pages.navPrev();
-  }
-
-  abstract _paint(): void;
-
-  paint(): void {
-    // This is often called asynchronously.  So make sure that the images
-    // are loaded before doing anything
-    if (!_.every(this.pages.currentPages.map(x => x.isLoaded))) {
+    if (this.layoutType === PageLayout.Smaht && chooseSingle) {
+      // Smart layout resolved to single page.
+      this._paintOne(canvas, suggestedRes, lpage);
       return;
     }
-    return this._paint();
+
+    // Dual page layout.
+    if (this.direction === Direction.RTL) {
+      // Manga mode, swap pages.
+      let temp = lpage;
+      lpage = rpage;
+      rpage = temp;
+    }
+    this._paintTwo(canvas, suggestedRes, lpage, rpage);
   }
 }

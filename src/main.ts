@@ -1,7 +1,4 @@
-// import * as Electron from "electron";
 import * as Electron from "electron";
-// import {initIPCListeners} from "./ipc";
-import {initEvents} from "./events";
 import {initIPCHostListeners} from "./ipc";
 import Menu from "./menu";
 
@@ -31,9 +28,6 @@ function createWindow () {
     // when you should delete the corresponding element.
     mainWindow = null;
   });
-
-  // Initialize the window message pump.
-  initEvents(mainWindow);
 
   // Initialize the ipc subsystem
   initIPCHostListeners(mainWindow);
