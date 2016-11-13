@@ -1,4 +1,4 @@
-import {DrawSource, Layout, Resolution, PageLayout} from "./base";
+import {DrawSource, Layout, Resolution, LayoutPages} from "./base";
 import {VirtualCollection} from "../vfs";
 import * as _ from "lodash";
 
@@ -96,10 +96,10 @@ export class FitLayout extends Layout {
     let lpc = chapter.pages[pageNum];
     let rpc = chapter.pages[pageNum + 1];
 
-    if (lpc == null || rpc == null || this.layoutType === PageLayout.Single) {
+    if (lpc == null || rpc == null || this.pages === LayoutPages.Single) {
       return 1;
     }
-    if (this.layoutType === PageLayout.Double) {
+    if (this.pages === LayoutPages.Double) {
       return 2;
     }
 
@@ -114,10 +114,10 @@ export class FitLayout extends Layout {
     let lpc = chapter.pages[pageNum - 1];
     let rpc = chapter.pages[pageNum - 2];
 
-    if (lpc == null || rpc == null || this.layoutType === PageLayout.Single) {
+    if (lpc == null || rpc == null || this.pages === LayoutPages.Single) {
       return 1;
     }
-    if (this.layoutType === PageLayout.Double) {
+    if (this.pages === LayoutPages.Double) {
       return 2;
     }
 
@@ -129,7 +129,7 @@ export class FitLayout extends Layout {
   }
 
   cacheCount(): number {
-    if (this.layoutType === PageLayout.Single) {
+    if (this.pages === LayoutPages.Single) {
       return 1;
     }
     return 2;

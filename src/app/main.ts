@@ -2,61 +2,17 @@ import * as Electron from "electron";
 import * as rx from "rxjs";
 import * as Cycle from "@cycle/rxjs-run";
 import {makeDOMDriver, VNode, div, button, span} from "@cycle/dom";
-import {DOMSource} from "@cycle/dom/rxjs-typings";
-import {model, Actions, AppState} from "./model";
+import {model, AppState} from "./model";
 import {MESSAGE} from "../ipc";
 import * as _ from "lodash";
 import * as Drivers from "./drivers";
-
-type Sources = {
-  DOM: DOMSource;
-  electron: Drivers.ElectronIPCStream;
-  canvas: Drivers.CanvasRenderSource;
-}
+import {Direction, getStyleForLayout} from "../layout";
+import {Sources, intent, Actions} from "./intent";
 
 interface MainSink {
   DOM: rx.Observable<VNode>;
   electron: Drivers.ElectronIPCStream;
   title: rx.Observable<string>;
-}
-
-function intent(sources: Sources): {actions: Actions, sinks: {electron: Drivers.ElectronIPCStream}} {
-  let fileOpens = sources.DOM.select(".file").events("click").map(() =>
-    Drivers.createIPCMessage(MESSAGE.toHost.OpenFile));
-  let folderOpens = sources.DOM.select(".folder").events("click").map(() =>
-    Drivers.createIPCMessage(MESSAGE.toHost.OpenFolder));
-
-  let nextPage = sources.DOM.select(".next-page").events("click").merge(
-    sources.DOM.select("canvas").events("click"));
-  let prevPage = sources.DOM.select(".previous-page").events("click").merge(
-    sources.DOM.select("canvas").events("contextmenu"));
-
-  function efilter(electron: Drivers.ElectronIPCStream, name: string): Drivers.ElectronIPCStream {
-    return electron.filter(x => x.name === name);
-  }
-  function etranslate(electron: Drivers.ElectronIPCStream, name: string): rx.Observable<any> {
-    return efilter(electron, name).map(x => x.data[0]);
-  }
-
-  let actions: Actions = {
-    prevPage: prevPage,
-    nextPage: nextPage,
-    setPage: rx.Observable.never(),
-    nextChapter: sources.DOM.select(".next-chapter").events("click"),
-    prevChapter: sources.DOM.select(".previous-chapter").events("click"),
-    openFile: etranslate(sources.electron, MESSAGE.toGuest.OpenFile),
-    openFolder: etranslate(sources.electron, MESSAGE.toGuest.OpenFolder),
-    closeChapter: efilter(sources.electron, MESSAGE.toGuest.CloseFile),
-    setLayout: rx.Observable.never(),
-    isFullscreenChange: etranslate(sources.electron, MESSAGE.toGuest.Fullscreen),
-  };
-
-  return {
-    actions: actions,
-    sinks: {
-      electron: fileOpens.merge(folderOpens)
-    },
-  };
 }
 
 function view(data: AppState, sources: Sources): {DOM: rx.Observable<VNode>} {
@@ -99,10 +55,27 @@ function view(data: AppState, sources: Sources): {DOM: rx.Observable<VNode>} {
   };
 }
 
+function electronActions(actions: Actions, data: AppState): Drivers.ElectronIPCStream {
+  return rx.Observable.merge(
+    actions.openFilePrompt.map(() =>
+      Drivers.createIPCMessage(MESSAGE.toHost.OpenFile)),
+
+    actions.openFolderPrompt.map(() =>
+      Drivers.createIPCMessage(MESSAGE.toHost.OpenFolder)),
+
+    data.layout.map(x =>
+      Drivers.createIPCMessage(MESSAGE.toHost.LayoutDirection, x.direction)),
+
+    data.layout.map(x =>
+      Drivers.createIPCMessage(MESSAGE.toHost.LayoutPage, x.pages)),
+
+    data.layout.map(x =>
+      Drivers.createIPCMessage(MESSAGE.toHost.LayoutStyle, getStyleForLayout(x)))
+  );
+}
+
 function main(sources: Sources): MainSink {
-  let intents = intent(sources);
-  let actions = intents.actions;
-  let intentSinks = intents.sinks;
+  let actions = intent(sources);
 
   let data = model(actions);
   let vdom = view(data, sources);
@@ -130,7 +103,7 @@ function main(sources: Sources): MainSink {
 
   let sinks = {
     DOM: vdom.DOM,
-    electron: intentSinks.electron,
+    electron: electronActions(actions, data),
     title: titles,
   };
 

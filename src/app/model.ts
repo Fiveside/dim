@@ -2,9 +2,11 @@ import * as Electron from "electron";
 import * as rx from "rxjs";
 import {DOMSource} from "@cycle/dom/rxjs-typings";
 import {readThing, VirtualCollection} from "../vfs";
-import {toMulticast} from "../util";
-import {Layout, FitLayout, Direction, PageLayout} from "../layout";
+import {toMulticast, toStoreStream} from "../util";
+import {Layout, Direction, LayoutPages, LayoutStyle, getLayout} from "../layout";
 import {MESSAGE} from "../ipc";
+import {ElectronIPCStream} from "./drivers";
+import {Actions} from "./intent";
 
 type Painter = string;
 type Page = string;
@@ -15,21 +17,6 @@ export interface AppState {
   chapter: rx.Observable<VirtualCollection>;
   layout: rx.Observable<Layout>;
   isFullscreen: rx.Observable<boolean>;
-}
-
-
-// Actions that directly modify the data
-export interface Actions {
-  nextPage: rx.Observable<any>;
-  prevPage: rx.Observable<any>;
-  setPage: rx.Observable<number>;
-  nextChapter: rx.Observable<any>;
-  prevChapter: rx.Observable<any>;
-  openFile: rx.Observable<string>;
-  openFolder: rx.Observable<string>;
-  closeChapter: rx.Observable<any>;
-  setLayout: rx.Observable<Layout>;
-  isFullscreenChange: rx.Observable<boolean>;
 }
 
 enum PageDirection {
@@ -125,7 +112,7 @@ function currentPageStream(actions: Actions, chapter: rx.Observable<VirtualColle
 }
 
 export function model(actions: Actions): AppState {
-  let archive: rx.Observable<VirtualCollection> = toMulticast(actions.openFile
+  let archive: rx.Observable<VirtualCollection> = toStoreStream(actions.openFile
     .merge(actions.openFolder)
     .flatMap(x => readThing(x)));
 
@@ -144,13 +131,13 @@ export function model(actions: Actions): AppState {
     });
 
   // The layout!
-  let layout = rx.Observable.of(new FitLayout(PageLayout.Smaht, Direction.LTR));
-
-  enum PageDirection {
-    none = 0,
-    next = 1,
-    prev = -1,
-  }
+  let layout = toStoreStream(rx.Observable.combineLatest(
+    rx.Observable.of(LayoutStyle.Fit).merge(actions.layout.setStyle),
+    rx.Observable.of(Direction.RTL).merge(actions.layout.setDirection),
+    rx.Observable.of(LayoutPages.Smaht).merge(actions.layout.setPages),
+  ).map(
+    ([style, direction, pages]) => new (getLayout(style))(pages, direction)
+  ));
 
   let currentChapter = rx.Observable.of(null)
     .merge(actions.openFile)

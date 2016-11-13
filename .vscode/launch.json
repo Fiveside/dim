@@ -22,18 +22,27 @@
                 "--enable-logging"
             ],
             "windows": {
+                // The electron entrypoint is a cmd file, and it spawns like
+                // a billion cmd prompts when launching electron, therefore
+                // contain it all in the integrated terminal.
                 "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron.cmd",
-                // Cannot spawn electron without using this.
                 "console": "integratedTerminal"
             }
         },
         {
-            "type": "node",
-            "request": "attach",
-            "name": "Attach to Process",
-            "port": 5858,
-            "outFiles": [],
-            "sourceMaps": true
+            "name": "Debug Render Process",
+            "type": "chrome",
+            "request": "launch",
+            "sourceMaps": true,
+            "runtimeExecutable": "${workspaceRoot}/node_modules/bin/electron",
+            "runtimeArgs": [
+                "${workspaceRoot}/build",
+                "--enable-logging",
+                "--remote-debugging-port=9222"
+            ],
+            "windows": {
+                "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron.cmd"
+            }
         }
     ]
 }

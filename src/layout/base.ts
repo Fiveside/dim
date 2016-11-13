@@ -13,7 +13,7 @@ export enum Direction {
   RTL,
   LTR
 }
-export enum PageLayout {
+export enum LayoutPages {
   Single,
   Double,
   Smaht,
@@ -25,8 +25,8 @@ export interface Resolution {
 }
 
 export interface ILayout {
-  layoutType: PageLayout;
-  direction: Direction;
+  readonly pages: LayoutPages;
+  readonly direction: Direction;
 
   // Paints to the specified canvas.
   paint(chapter: VirtualCollection, pageNum: number, canvas: HTMLCanvasElement, suggestedRes: Resolution): void;
@@ -42,10 +42,10 @@ export interface ILayout {
 }
 
 export abstract class Layout implements ILayout {
-  layoutType: PageLayout;
+  pages: LayoutPages;
   direction: Direction;
-  constructor(type: PageLayout, direction: Direction) {
-    this.layoutType = type;
+  constructor(pages: LayoutPages, direction: Direction) {
+    this.pages = pages;
     this.direction = direction;
   }
   abstract nextPageStep(chapter: VirtualCollection, pageNum: number): Promise<number>;
@@ -77,7 +77,7 @@ export abstract class Layout implements ILayout {
 
     let lpage = await lpc.image;
 
-    if (this.layoutType === PageLayout.Single || rpc == null) {
+    if (this.pages === LayoutPages.Single || rpc == null) {
       // Single layout.
       this._paintOne(canvas, suggestedRes, lpage);
       return;
@@ -86,7 +86,7 @@ export abstract class Layout implements ILayout {
     let rpage = await rpc.image;
     let chooseSingle = this.isSinglePageMode(lpage) || this.isSinglePageMode(rpage)
 
-    if (this.layoutType === PageLayout.Smaht && chooseSingle) {
+    if (this.pages === LayoutPages.Smaht && chooseSingle) {
       // Smart layout resolved to single page.
       this._paintOne(canvas, suggestedRes, lpage);
       return;

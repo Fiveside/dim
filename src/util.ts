@@ -8,6 +8,13 @@ export function toMulticast<T>(obs: rx.Observable<T>): rx.Observable<T> {
   return multicast;
 }
 
+export function toStoreStream<T>(stream: rx.Observable<T>): rx.Observable<T> {
+  let subject = new rx.ReplaySubject<T>(1);
+  let multicast = stream.multicast(subject);
+  multicast.connect();
+  return subject;
+}
+
 export interface UnwrappedPromise<T> {
   promise: Promise<T>;
   resolve: {(t: T): void};

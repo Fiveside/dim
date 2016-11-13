@@ -1,4 +1,6 @@
 import * as Electron from "electron";
+import {Direction, LayoutPages, LayoutStyle} from "./layout";
+import * as Menu from "./menu";
 
 export interface Action {
   (bw: Electron.BrowserWindow, ...data: any[]): void;
@@ -50,6 +52,9 @@ export const MESSAGE = {
     OpenFolder: "disk:open-folder", // Folder opened.
     CloseFile: "disk:close", // Close the current chapter.
     Fullscreen: "window:fullscreen", // Fullscreen state changed.
+    LayoutPage: "layout:page-style", // Number of pages in layout.
+    LayoutDirection: "layout:direction", // Reading direction
+    LayoutStyle: "layout:style", // Layout style (100% fit)
   },
   toHost: {
     OpenFile: "messagebox:open-file", // Request file picker.
@@ -57,6 +62,9 @@ export const MESSAGE = {
     IsFullscreen: "window:is-full-screen", // Sync call, is fullscreen.
     SetFullScreen: "window:set-full-screen", // Declare new fullscreen state.
     ToggleFullScreen: "window:toggle-full-screen", // Switch fullscreen state.
+    LayoutPage: "layout:page-style", // Switch number of pages in layout
+    LayoutDirection: "layout:direction", // Switch reading direction
+    LayoutStyle: "layout:style", // Layout style
   },
 };
 
@@ -111,4 +119,29 @@ export const toggleFullScreen = register(MESSAGE.toHost.ToggleFullScreen,
 registerRaw(MESSAGE.toHost.IsFullscreen, (event: Electron.IpcMainEvent) => {
   let bw = Electron.BrowserWindow.fromWebContents(event.sender);
   event.returnValue = bw.isFullScreen();
+});
+
+// Layout functions
+export function setLayoutDirection(bw: Electron.BrowserWindow, direction: Direction) {
+  bw.webContents.send(MESSAGE.toGuest.LayoutDirection, direction);
+}
+register(MESSAGE.toHost.LayoutDirection,
+(bw: Electron.BrowserWindow, direction: Direction) => {
+  Menu.setLayoutDirection(bw, direction);
+});
+
+export function setLayoutStyle(bw: Electron.BrowserWindow, style: LayoutStyle) {
+  bw.webContents.send(MESSAGE.toGuest.LayoutStyle, style);
+}
+register(MESSAGE.toHost.LayoutStyle,
+(bw: Electron.BrowserWindow, style: LayoutStyle) => {
+  Menu.setLayoutStyle(bw, style);
+});
+
+export function setLayoutPageNumbers(bw: Electron.BrowserWindow, pages: LayoutPages) {
+  bw.webContents.send(MESSAGE.toGuest.LayoutPage, pages);
+}
+register(MESSAGE.toHost.LayoutPage,
+(bw: Electron.BrowserWindow, pages: LayoutPages) => {
+  Menu.setLayoutPageNumbers(bw, pages);
 });

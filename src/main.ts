@@ -1,6 +1,6 @@
 import * as Electron from "electron";
 import {initIPCHostListeners} from "./ipc";
-import Menu from "./menu";
+import {linkMenu} from "./menu";
 
 // Module to control application life.
 const app = Electron.app;
@@ -32,7 +32,8 @@ function createWindow () {
   // Initialize the ipc subsystem
   initIPCHostListeners(mainWindow);
 
-  mainWindow.setMenu(Menu);
+  // Initialize the menu subsystem
+  linkMenu(mainWindow);
 }
 
 // This method will be called when Electron has finished
