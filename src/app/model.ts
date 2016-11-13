@@ -77,8 +77,8 @@ function pageReducer(l: PageScanState, r: PageScan): PageScanState {
       // PageDirection.none
       newPageNum = l.pageNum;
     }
-    updated.pageNum = newPageNum;
   }
+  updated.pageNum = newPageNum;
   return updated;
 }
 
@@ -108,7 +108,7 @@ function currentPageStream(actions: Actions, chapter: rx.Observable<VirtualColle
     .map(x => x.pageNum)
     .concatAll();
 
-    return pageChanges;
+  return pageChanges;
 }
 
 export function model(actions: Actions): AppState {
