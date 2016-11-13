@@ -10,7 +10,9 @@
         "listFiles": true,
         "pretty": true,
         "noImplicitAny": true,
-        "sourceMap": true
+        "sourceMap": true,
+        "outDir": "build",
+        "rootDir": "src"
     },
 
     "exclude": [

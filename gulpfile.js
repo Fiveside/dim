@@ -45,10 +45,15 @@ const tsOptions = {typescript: require("typescript")};
 const tsProject = ts.createProject(PATHS.project, tsOptions);
 
 gulp.task("compile", () => {
-  return tsProject.src("src")
+  let sourceMapConfig = {
+    includeContent: false,
+    sourceRoot: "",
+    debug: true,
+  };
+  return tsProject.src()
     .pipe(sourcemaps.init())
     .pipe(tsProject()).js
-    .pipe(sourcemaps.write())
+    .pipe(sourcemaps.write(".", sourceMapConfig))
     .pipe(gulp.dest(PATHS.build));
 });
 
