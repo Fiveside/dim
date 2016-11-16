@@ -72,8 +72,8 @@ export function intent(sources: Sources): Actions {
 
   let binds = keybindings(sources);
   return {
-    prevPage: prevPage.merge(binds.nextPage),
-    nextPage: nextPage.merge(binds.prevPage),
+    prevPage: prevPage.merge(binds.prevPage),
+    nextPage: nextPage.merge(binds.nextPage),
     setPage: rx.Observable.never(),
     nextChapter: sources.DOM.select(".next-chapter").events("click"),
     prevChapter: sources.DOM.select(".previous-chapter").events("click"),
