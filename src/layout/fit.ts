@@ -96,9 +96,14 @@ export class FitLayout extends Layout {
     let lpc = chapter.pages[pageNum];
     let rpc = chapter.pages[pageNum + 1];
 
-    if (lpc == null || rpc == null || this.pages === LayoutPages.Single) {
+    if (lpc == null) {
+      return 0;
+    }
+
+    if (rpc == null || this.pages === LayoutPages.Single) {
       return 1;
     }
+
     if (this.pages === LayoutPages.Double) {
       return 2;
     }
@@ -114,9 +119,14 @@ export class FitLayout extends Layout {
     let lpc = chapter.pages[pageNum - 1];
     let rpc = chapter.pages[pageNum - 2];
 
-    if (lpc == null || rpc == null || this.pages === LayoutPages.Single) {
+    if (lpc == null) {
+      return 0;
+    }
+
+    if (rpc == null || this.pages === LayoutPages.Single) {
       return 1;
     }
+
     if (this.pages === LayoutPages.Double) {
       return 2;
     }
