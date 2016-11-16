@@ -1,7 +1,7 @@
 import * as Electron from "electron";
 import * as rx from "rxjs";
 import {DOMSource} from "@cycle/dom/rxjs-typings";
-import {readThing, VirtualCollection} from "../vfs";
+import {readThing, VirtualCollection, nextReadable, prevReadable} from "../vfs";
 import {toMulticast, toStoreStream} from "../util";
 import {Layout, Direction, LayoutPages, LayoutStyle, getLayout} from "../layout";
 import {MESSAGE} from "../ipc";
@@ -82,6 +82,35 @@ function pageReducer(l: PageScanState, r: PageScan): PageScanState {
   return updated;
 }
 
+interface ChapterDelta {
+  // isDelta: boolean;
+  isNext: boolean;
+  // set?: Promise<VirtualCollection>;
+}
+interface ChapterSet {
+  set: Promise<VirtualCollection>;
+}
+function chapterReducer(l: Promise<VirtualCollection>, r: ChapterDelta | ChapterSet) {
+  let asDelta = <ChapterDelta>r;
+  let asSet = <ChapterSet>r;
+  if (asDelta.isNext != null) {
+    return l.then(x => {
+      if (x == null) {
+        // Do nothing if we have a delta based on nothing.
+        return null;
+      }
+      if (asDelta.isNext) {
+        return nextReadable(x);
+      } else {
+        return prevReadable(x);
+      }
+    });
+  } else {
+    // its a ChapterSet
+    return asSet.set;
+  }
+}
+
 function currentPageStream(actions: Actions, chapter: rx.Observable<VirtualCollection>, layout: rx.Observable<Layout>): rx.Observable<number> {
   let pageDelta = rx.Observable.of(PageDirection.none)
     .merge(actions.nextPage.mapTo(PageDirection.next))
@@ -98,6 +127,7 @@ function currentPageStream(actions: Actions, chapter: rx.Observable<VirtualColle
   // if set is set, then just redeclare the current page.
   // The type reported is Promise<number> but its actually an observable.
   // there's something wrong with the concatAll() type definition
+  // https://github.com/ReactiveX/rxjs/issues/2136
   let pageChanges: rx.Observable<number> = pageDelta
     .map(x => (<PageScanJump>{set: false, by: x}))
     .merge(pageResets.map(x => (<PageScanJump>{set: true, by: x})))
@@ -112,9 +142,17 @@ function currentPageStream(actions: Actions, chapter: rx.Observable<VirtualColle
 }
 
 export function model(actions: Actions): AppState {
-  let archive: rx.Observable<VirtualCollection> = toStoreStream(actions.openFile
-    .merge(actions.openFolder)
-    .flatMap(x => readThing(x)));
+  // The Type signature reported here is funky.
+  // See https://github.com/ReactiveX/rxjs/issues/2136
+  let arcBase: rx.Observable<VirtualCollection> = actions.openFile
+    .merge(actions.openFolder).map(x => <ChapterSet>{set: readThing(x)})
+    .merge(actions.closeChapter.map(x => <ChapterSet>{set: null}))
+    .merge(actions.nextChapter.mapTo(<ChapterDelta>{isNext: true}))
+    .merge(actions.prevChapter.mapTo(<ChapterDelta>{isNext: false}))
+    .scan(chapterReducer, Promise.resolve(null))
+    .concatAll();
+
+  let archive: rx.Observable<VirtualCollection> = toStoreStream(arcBase);
 
   // Clean up old archives
   // Create an array of 2, the left one (x[0]) will be GCed and the right

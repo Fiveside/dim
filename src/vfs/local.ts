@@ -4,6 +4,8 @@ import * as Path from "path";
 import * as Bluebird from "bluebird";
 import * as fs from "fs";
 
+const fileUrl = require("file-url");
+
 export class FSCollection extends VirtualCollection {
   root: string;
   constructor(children: VirtualPage[], location: string) {

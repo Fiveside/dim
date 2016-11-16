@@ -16,6 +16,7 @@
   "license": "MPL-2.0",
   "devDependencies": {
     "@types/bluebird": "^3.0.35",
+    "@types/chai": "^3.4.34",
     "@types/core-decorators": "^0.10.30",
     "@types/electron": "^1.4.25",
     "@types/lodash": "^4.14.38",
@@ -43,7 +44,7 @@
     "lodash": "^4.16.6",
     "mobx": "^2.6.1",
     "natsort": "^1.0.6",
-    "rxjs": "^5.0.0-rc.2",
+    "rxjs": "^5.0.0-rc.3",
     "xstream": "^7.0.0",
     "yauzl": "^2.7.0"
   }
