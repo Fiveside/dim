@@ -368,8 +368,8 @@ export class ArchiveCollection extends VirtualCollection {
     this.controller = controller;
   }
 
-  unload(): void {
-    super.unload();
+  dispose(): void {
+    super.dispose();
     this.controller.destroy();
   }
 

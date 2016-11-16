@@ -28,8 +28,8 @@ export class ZipCollection extends VirtualCollection {
     this.zipFile = opts.zipFile;
   }
 
-  unload(): void {
-    super.unload();
+  dispose(): void {
+    super.dispose();
     this.zipFile.close();
   }
 
