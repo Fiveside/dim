@@ -18,15 +18,15 @@ interface MainSink {
 function view(data: AppState, sources: Sources): {DOM: rx.Observable<VNode>} {
   let totalPages = rx.Observable.of(null).merge(data.chapter.map(x => x.length));
   let doctoredPage = rx.Observable.of(null).merge(data.currentPage);
-  let merged = rx.Observable.combineLatest(
-    data.openFile,
-    doctoredPage,
-    totalPages,
-    data.isFullscreen,
-  );
-  let withPrefix = rx.Observable.of([
-    null, null, null, false,
-  ]).merge(merged);
+
+  let n = rx.Observable.of(null);
+  let withPrefix = rx.Observable.combineLatest(
+    n.merge(data.openFile),
+    n.merge(doctoredPage),
+    n.merge(totalPages),
+    rx.Observable.of(false).merge(data.isFullscreen),
+  )
+
   return {
     DOM: withPrefix.map(([openfile, currentPage, totalPages, isFullscreen]) => {
       let inner: VNode;
@@ -62,6 +62,9 @@ function electronActions(actions: Actions, data: AppState): Drivers.ElectronIPCS
 
     actions.openFolderPrompt.map(() =>
       Drivers.createIPCMessage(MESSAGE.toHost.OpenFolder)),
+
+    data.isFullscreen.map(x =>
+      Drivers.createIPCMessage(MESSAGE.toHost.SetFullScreen, x)),
 
     data.layout.map(x =>
       Drivers.createIPCMessage(MESSAGE.toHost.LayoutDirection, x.direction)),

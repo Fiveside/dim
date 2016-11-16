@@ -6,7 +6,7 @@ import {toMulticast, toStoreStream} from "../util";
 import {Layout, Direction, LayoutPages, LayoutStyle, getLayout} from "../layout";
 import {MESSAGE} from "../ipc";
 import {ElectronIPCStream} from "./drivers";
-import {Actions} from "./intent";
+import {Actions, BooleanDelta} from "./intent";
 
 type Painter = string;
 type Page = string;
@@ -144,9 +144,14 @@ export function model(actions: Actions): AppState {
     .merge(actions.openFolder)
     .merge(actions.closeChapter.map(x => null));
 
-  let isFullscreen = rx.Observable.of(
-    Electron.ipcRenderer.sendSync(MESSAGE.toHost.IsFullscreen)
-  ).merge(actions.isFullscreenChange);
+  let isFullscreen = actions.isFullscreenChange
+    .scan((l: boolean, r: BooleanDelta) => {
+      switch (r) {
+        case BooleanDelta.True: return true;
+        case BooleanDelta.False: return false;
+        case BooleanDelta.Toggle: return !l;
+      }
+    }, Electron.ipcRenderer.sendSync(MESSAGE.toHost.IsFullscreen));
 
   return {
     currentPage: currentPageStream(actions, archive, layout),

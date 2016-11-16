@@ -37,12 +37,12 @@ export function initIPCHostListeners(bw: Electron.BrowserWindow) {
     Electron.ipcMain.on(name, cb);
   }
 
-  // Events from the host.
-  function cast(name: string, ...args: any[]) {
-    return () => bw.webContents.send(name, ...args);
-  }
-  bw.on("enter-full-screen", cast(MESSAGE.toGuest.Fullscreen, true));
-  bw.on("leave-full-screen", cast(MESSAGE.toGuest.Fullscreen, false));
+  // // Events from the host.
+  // function cast(name: string, ...args: any[]) {
+  //   return () => bw.webContents.send(name, ...args);
+  // }
+  // bw.on("enter-full-screen", cast(MESSAGE.toGuest.Fullscreen, true));
+  // bw.on("leave-full-screen", cast(MESSAGE.toGuest.Fullscreen, false));
 }
 
 // Message definitions, avoiding magic strings.
