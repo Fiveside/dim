@@ -68,6 +68,22 @@ export const MESSAGE = {
   },
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// Actions performed here with side effects that need to be acted on in the
+// render process should instead simply be announced to the render process
+// which should announce back to the host process to actually perform the action
+// This allows the render process to trigger said actions on its own (like when
+// loading settings and state from disk) and prevents looping actions
+// indefinately.
+//
+// Ex:
+// User clicks menu to toggle fullscreen
+// -> IPC message to render
+// -> render process
+// -> IPC message to host
+// -> perform fullscreen toggle.
+////////////////////////////////////////////////////////////////////////////////
+
 function genericFilePicker(
       bw: Electron.BrowserWindow,
       options: Electron.OpenDialogOptions,
@@ -105,14 +121,16 @@ export function closeFile(bw: Electron.BrowserWindow) {
   bw.webContents.send(MESSAGE.toGuest.CloseFile);
 }
 
-export const setFullScreen = register(MESSAGE.toHost.SetFullScreen,
-(bw: Electron.BrowserWindow, mode: boolean) => {
+register(MESSAGE.toHost.SetFullScreen, setFullScreen);
+function setFullScreen(bw: Electron.BrowserWindow, mode: boolean) {
   bw.setMenuBarVisibility(!mode);
   bw.setFullScreen(mode);
-});
+}
 
-export const toggleFullScreen = register(MESSAGE.toHost.ToggleFullScreen,
-(bw: Electron.BrowserWindow) => {
+export function toggleFullScreen(bw: Electron.BrowserWindow) {
+  bw.webContents.send(MESSAGE.toGuest.Fullscreen, !bw.isFullScreen());
+}
+register(MESSAGE.toHost.ToggleFullScreen, (bw: Electron.BrowserWindow) => {
   setFullScreen(bw, !bw.isFullScreen());
 });
 

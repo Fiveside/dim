@@ -55,7 +55,12 @@ body {
 .fullscreen .bottom-menu {
   display: none;
 }
-.fullscreen .image-container {
-  padding-bottom: 0rem;
+.fullscreen .viewport {
+  /*
+    When a canvas element takes up all the vertical space, it for some reason
+    causes the scrollbars to appear.  There appears to be like 3 pixels of space
+    that cannot be removed below the actual canvas itself.
+  */
+  padding-bottom: 3px;
 }
 

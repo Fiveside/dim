@@ -120,14 +120,11 @@ function currentPageStream(actions: Actions, chapter: rx.Observable<VirtualColle
     .merge(actions.openFile)
     .merge(actions.openFolder)
     .merge(actions.closeChapter)
-    .mapTo(0)
+    .mapTo(null)
     .merge(actions.setPage);
 
   // if delta is set, then the page change is a delta.
   // if set is set, then just redeclare the current page.
-  // The type reported is Promise<number> but its actually an observable.
-  // there's something wrong with the concatAll() type definition
-  // https://github.com/ReactiveX/rxjs/issues/2136
   let pageChanges: rx.Observable<number> = pageDelta
     .map(x => (<PageScanJump>{set: false, by: x}))
     .merge(pageResets.map(x => (<PageScanJump>{set: true, by: x})))
@@ -135,22 +132,21 @@ function currentPageStream(actions: Actions, chapter: rx.Observable<VirtualColle
       rx.Observable.combineLatest(chapter, layout)
         .map(([chapter, layout]) => (<PageScanLayout>{chapter, layout}))
     ).scan(pageReducer, {pageNum: Promise.resolve(0), chapter: null, layout: null})
-    .map(x => x.pageNum)
-    .concatAll();
+    .concatMap(x => x.pageNum);
 
   return pageChanges;
 }
 
 export function model(actions: Actions): AppState {
-  // The Type signature reported here is funky.
-  // See https://github.com/ReactiveX/rxjs/issues/2136
   let arcBase: rx.Observable<VirtualCollection> = actions.openFile
     .merge(actions.openFolder).map(x => <ChapterSet>{set: readThing(x)})
     .merge(actions.closeChapter.map(x => <ChapterSet>{set: null}))
     .merge(actions.nextChapter.mapTo(<ChapterDelta>{isNext: true}))
     .merge(actions.prevChapter.mapTo(<ChapterDelta>{isNext: false}))
     .scan(chapterReducer, Promise.resolve(null))
-    .concatAll();
+  // This has to be concatMap to appease the type system.
+  // See https://github.com/ReactiveX/rxjs/issues/2136
+    .concatMap(x => x);
 
   let archive: rx.Observable<VirtualCollection> = toStoreStream(arcBase);
 
