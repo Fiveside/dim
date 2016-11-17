@@ -8,9 +8,6 @@ import {MESSAGE} from "../ipc";
 import {ElectronIPCStream} from "./drivers";
 import {Actions, BooleanDelta} from "./intent";
 
-type Painter = string;
-type Page = string;
-
 export interface AppState {
   currentPage: rx.Observable<number>;
   openFile: rx.Observable<string | null>;

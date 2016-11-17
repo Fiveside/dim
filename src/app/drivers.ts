@@ -15,7 +15,7 @@ interface ElectronIPCMessage {
 export function makeElectronIPCDriver(eventNames: Array<string>) {
   function driver(outgoingMessages: ElectronIPCStream): ElectronIPCStream {
     function onNext(msg: ElectronIPCMessage) {
-      console.log("Sending message to host", msg);
+      console.log("Sending message to host", msg.name, msg.data);
       Electron.ipcRenderer.send(msg.name, ...msg.data);
     }
     outgoingMessages.subscribe({

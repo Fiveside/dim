@@ -144,9 +144,12 @@ export function setLayoutDirection(bw: Electron.BrowserWindow, direction: Direct
     (<Electron.Menu>menu.items[1].submenu).items[0].submenu
   ).items;
 
-  let isLTR = direction === Direction.LTR;
-  ltr.checked = isLTR;
-  rtl.checked = !isLTR;
+  // Same problem as with the setLayoutPageNumbers logic
+  if (direction === Direction.LTR) {
+    ltr.checked = true;
+  } else {
+    rtl.checked = true;
+  }
 
   bw.setMenu(menu);
 }
@@ -157,9 +160,19 @@ export function setLayoutPageNumbers(bw: Electron.BrowserWindow, pages: LayoutPa
     (<Electron.Menu>menu.items[1].submenu).items[1].submenu
   ).items;
 
-  single.checked = pages === LayoutPages.Single;
-  double.checked = pages === LayoutPages.Double;
-  smart.checked = pages === LayoutPages.Smaht;
+  // // For whatever reason, setting one of these to false seems to set it to true
+  // // and all the others to false (???????)
+  // single.checked = pages === LayoutPages.Single;
+  // double.checked = pages === LayoutPages.Double;
+  // smart.checked = pages === LayoutPages.Smaht;
+
+  if (pages === LayoutPages.Single) {
+    single.checked = true;
+  } else if (pages === LayoutPages.Double) {
+    double.checked = true;
+  } else {
+    smart.checked = true;
+  }
 
   bw.setMenu(menu);
 }
