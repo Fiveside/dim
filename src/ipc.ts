@@ -70,8 +70,8 @@ export const MESSAGE = {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Actions performed here with side effects that need to be acted on in the
-// render process should instead simply be announced to the render process
-// which should announce back to the host process to actually perform the action
+// render process should instead be announced to the render process which
+// should announce back to the host process to actually perform the action.
 // This allows the render process to trigger said actions on its own (like when
 // loading settings and state from disk) and prevents looping actions
 // indefinately.

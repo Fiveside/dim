@@ -1,4 +1,3 @@
-import {observable, computed, transaction} from "mobx";
 import * as Drawing from "../lib/drawing";
 import * as Path from "path";
 import * as rx from "rxjs";
@@ -52,7 +51,30 @@ Composition2
 // Base class for a filesystem entry structure type thing.
 abstract class VirtualEntry {}
 
-export abstract class VirtualCollection extends VirtualEntry {
+export interface IVirtualCollection {
+  // Destroy the collection and de-allocate all resources.
+  dispose(): void;
+
+  //
+  // The following methods deal with cache marking.  Collections have a concept
+  // of an active page and a previous/next page cache.  Pages that are not
+  // active in the cache do not have canvas elements that can be retrived for
+  // painting and will instead return promises that will resolve after the
+  // page is moved to active cache.
+
+  // Set the number of pages to flag as active in the cache.
+  // This is an optimization for different layout types to use.
+  setPageCount(numPages: number): void;
+
+  // Jump to a specific page
+  jumpPage(pageNum: number): void;
+
+  // TODO: Decide what to do with the shiftNext, navNext, and similar methods
+  // page stepping is handled by the layout, so it seems like these are
+  // no longer required.
+}
+
+export abstract class VirtualCollection extends VirtualEntry implements IVirtualCollection {
   location: string;
   pages: Array<VirtualPage>;
   pageNum: number;
@@ -155,13 +177,13 @@ export abstract class VirtualCollection extends VirtualEntry {
     ps.reduce((l, r) => l.then(r), Promise.resolve());
   }
 
-  navNext(): Promise<void> {
-    return this.jumpPage(this.pageNum + this.currentPageCount);
-  }
+  // navNext(): Promise<void> {
+  //   return this.jumpPage(this.pageNum + this.currentPageCount);
+  // }
 
-  navPrev(): Promise<void> {
-    return this.jumpPage(this.pageNum - this.currentPageCount);
-  }
+  // navPrev(): Promise<void> {
+  //   return this.jumpPage(this.pageNum - this.currentPageCount);
+  // }
 
   shiftNext(): Promise<void> {
     return this.jumpPage(this.pageNum + 1);
@@ -170,67 +192,6 @@ export abstract class VirtualCollection extends VirtualEntry {
   shiftPrev(): Promise<void> {
     return this.jumpPage(this.pageNum - 1);
   }
-
-  // _nav(numPages: number): void {
-  //   // Safety
-  //   numPages = Math.min(this._pageNum + numPages, this.pages.length);
-  //   if (this._pageNum + numPages >= this.pages.length - 1) {
-
-  //   }
-  // }
-
-  // _navPrev() {
-  // }
-
-  // shiftNext() {
-  //   if (this._pageNum >= this.pages.length - 1) {
-  //     // console.warn("Attempted to navigate to a page that was out of range.");
-  //     return;
-  //   }
-
-  //   let nextLoadNum = this._pageNum + this._nextPageCache.length + 1;
-  //   if (nextLoadNum < this.pages.length) {
-  //     this._nextPageCache.push(this.pages[nextLoadNum]);
-  //     this.pages[nextLoadNum].load();
-  //   }
-
-  //   let newPages: Array<VirtualPage> = [];
-
-  //   this._prevPageCache.unshift(this.currentPages.shift());
-  //   // this.currentPages.forEach(x => this._prevPageCache.unshift(x));
-  //   // this._prevPageCache.unshift(this.currentPage);
-  //   this.currentPages.push(this._nextPageCache.shift());
-  //   // this.currentPage = this._nextPageCache.shift();
-  //   if (this._prevPageCache.length > this._prevCacheSize) {
-  //     this._prevPageCache.pop().unload();
-  //   }
-
-  //   this._pageNum += 1;
-  // }
-
-  // shiftPrev() {
-  //   if (this._pageNum <= 0) {
-  //     // console.warn("Attempted to navigate to a page that was out of range.");
-  //     return;
-  //   }
-
-  //   let prevLoadNum = this._pageNum - this._prevPageCache.length - 1;
-  //   if (prevLoadNum >= 0) {
-  //     let page = this.pages[prevLoadNum];
-  //     this._prevPageCache.push(page);
-  //     page.load();
-  //   }
-
-  //   // this._nextPageCache.unshift(this.currentPages.pop);
-  //   this._nextPageCache.unshift(this.currentPages.pop());
-  //   // this.currentPage = this._prevPageCache.shift();
-  //   this.currentPages.unshift(this._prevPageCache.shift());
-  //   if (this._nextPageCache.length > this._nextCacheSize) {
-  //     this._nextPageCache.pop().unload();
-  //   }
-
-  //   this._pageNum -= 1;
-  // }
 }
 
 export interface IVirtualPageProps {
@@ -238,7 +199,7 @@ export interface IVirtualPageProps {
 }
 
 export interface IVirtualPage {
-  image: Promise<HTMLCanvasElement>;
+  image: Promise<Drawing.DrawSource>;
   load(): Promise<Drawing.DrawSource>;
   unload(): void;
   dispose(): void;
