@@ -1,51 +1,96 @@
 {
   "name": "dim",
-  "version": "0.0.2",
-  "description": "An image viewer",
-  "main": "main.js",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/Fiveside/dim.git"
-  },
-  "scripts": {
-    "start": "gulp",
-    "dev": "gulp dev",
-    "setup": "npm i"
-  },
-  "author": "Erich Healy",
-  "license": "MPL-2.0",
-  "devDependencies": {
-    "@types/bluebird": "^3.0.35",
-    "@types/chai": "^3.4.34",
-    "@types/core-decorators": "^0.10.30",
-    "@types/electron": "^1.4.25",
-    "@types/lodash": "^4.14.38",
-    "@types/node": "^6.0.46",
-    "del": "^2.2.1",
-    "electron": "^1.4.5",
-    "electron-packager": "^8.2.0",
-    "electron-prebuilt": "^1.4.5",
-    "eslint": "^3.4.0",
-    "gulp": "^3.9.1",
-    "gulp-run-electron": "^3.0.1",
-    "gulp-sourcemaps": "^2.2.0",
-    "gulp-typescript": "^3.1.2",
-    "tslint": "^3.15.1",
-    "typescript": "^2.0.7"
-  },
+  "version": "0.1.0",
+  "private": true,
   "dependencies": {
-    "@cycle/dom": "^14.0.0",
-    "@cycle/rxjs-run": "^3.0.3",
-    "bluebird": "^3.4.6",
-    "classnames": "^2.2.5",
-    "core-decorators": "^0.14.0",
-    "file-url": "^1.1.0",
-    "keypress": "git+https://github.com/dmauro/Keypress.git",
-    "lodash": "^4.16.6",
-    "mobx": "^2.6.1",
-    "natsort": "^1.0.6",
-    "rxjs": "^5.0.0-rc.3",
-    "xstream": "^7.0.0",
-    "yauzl": "^2.7.0"
+    "react": "^15.5.4",
+    "react-dom": "^15.5.4"
+  },
+  "devDependencies": {
+    "@types/react": "^15.0.23",
+    "@types/react-dom": "^15.5.0",
+    "autoprefixer": "6.7.2",
+    "babel-core": "6.22.1",
+    "babel-eslint": "7.1.1",
+    "babel-jest": "18.0.0",
+    "babel-loader": "6.2.10",
+    "babel-preset-react-app": "^2.2.0",
+    "babel-runtime": "^6.20.0",
+    "case-sensitive-paths-webpack-plugin": "1.1.4",
+    "chalk": "1.1.3",
+    "connect-history-api-fallback": "1.3.0",
+    "cross-spawn": "4.0.2",
+    "css-loader": "0.26.1",
+    "detect-port": "1.1.0",
+    "dotenv": "2.0.0",
+    "electron": "^1.6.6",
+    "eslint": "3.16.1",
+    "eslint-config-react-app": "^0.6.2",
+    "eslint-loader": "1.6.0",
+    "eslint-plugin-flowtype": "2.21.0",
+    "eslint-plugin-import": "2.0.1",
+    "eslint-plugin-jsx-a11y": "4.0.0",
+    "eslint-plugin-react": "6.4.1",
+    "extract-text-webpack-plugin": "1.0.1",
+    "file-loader": "0.10.0",
+    "fs-extra": "0.30.0",
+    "html-webpack-plugin": "2.24.0",
+    "http-proxy-middleware": "0.17.3",
+    "jest": "18.1.0",
+    "json-loader": "0.5.4",
+    "object-assign": "4.1.1",
+    "postcss-loader": "1.2.2",
+    "promise": "7.1.1",
+    "react-dev-utils": "^0.5.2",
+    "style-loader": "0.13.1",
+    "ts-loader": "^2.0.3",
+    "typescript": "^2.2.2",
+    "url-loader": "0.5.7",
+    "webpack": "1.14.0",
+    "webpack-dev-server": "1.16.2",
+    "webpack-manifest-plugin": "1.1.0",
+    "whatwg-fetch": "2.0.2"
+  },
+  "main": "main.js",
+  "scripts": {
+    "electron": "electron .",
+    "start": "node scripts/start.js",
+    "build": "node scripts/build.js",
+    "test": "node scripts/test.js --env=jsdom"
+  },
+  "jest": {
+    "moduleFileExtensions": ["ts", "jsx", "js", "tsx"],
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(tsx|ts|js|jsx)$",
+    "collectCoverageFrom": [
+      "**/*.{js,jsx,ts,tsx}"
+    ],
+    "setupFiles": [
+      "<rootDir>/config/polyfills.js"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>[/\\\\](build|docs|node_modules|scripts)[/\\\\]"
+    ],
+    "testEnvironment": "node",
+    "testURL": "http://localhost",
+    "transform": {
+      "^.+\\.(js|jsx)$": "<rootDir>/node_modules/babel-jest",
+      "^.+\\.(ts)$": "<rootDir>/config/jest/tsTransform.js",
+      "^.+\\.css$": "<rootDir>/config/jest/cssTransform.js",
+      "^(?!.*\\.(js|jsx|css|json)$)": "<rootDir>/config/jest/fileTransform.js"
+    },
+    "transformIgnorePatterns": [
+      "[/\\\\]node_modules[/\\\\].+\\.(js|jsx)$"
+    ],
+    "moduleNameMapper": {
+      "^react-native$": "react-native-web"
+    }
+  },
+  "babel": {
+    "presets": [
+      "react-app"
+    ]
+  },
+  "eslintConfig": {
+    "extends": "react-app"
   }
 }

@@ -1,20 +1,16 @@
 {
     "compilerOptions": {
+        "target": "es5",
         "module": "commonjs",
-        "target": "es6",
-        "jsx": "react",
-        "reactNamespace": "JSX",
-        "moduleResolution": "node",
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
-        "listFiles": true,
-        "pretty": true,
         "noImplicitAny": true,
+        "noEmitOnError": true,
+        "newLine": "LF",
+        "experimentalDecorators": true,
         "sourceMap": true,
-        "outDir": "build",
-        "rootDir": "src"
+        "jsx": "react",
+        "baseUrl": "src",
+        "sourceRoot": "src"
     },
-
     "exclude": [
         "node_modules"
     ]
