@@ -12,6 +12,8 @@
         "sourceRoot": "src"
     },
     "exclude": [
-        "node_modules"
+        "node_modules",
+        "**/*.test.tsx",
+        "**/*.test.ts"
     ]
 }

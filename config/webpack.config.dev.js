@@ -157,6 +157,7 @@ module.exports = {
       },
       // Typescript loader for typescript code
       {
+        exclude: [/test\.(ts|tsx)(\?.*)?$/],
         test: /\.tsx?$/,
         loader: "ts-loader"
       }

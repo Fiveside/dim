@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "lodash": "^4.17.4",
     "react": "^15.5.4",
     "react-dom": "^15.5.4"
   },
@@ -59,7 +60,12 @@
     "test": "node scripts/test.js --env=jsdom"
   },
   "jest": {
-    "moduleFileExtensions": ["ts", "jsx", "js", "tsx"],
+    "moduleFileExtensions": [
+      "ts",
+      "jsx",
+      "js",
+      "tsx"
+    ],
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(tsx|ts|js|jsx)$",
     "collectCoverageFrom": [
       "**/*.{js,jsx,ts,tsx}"
