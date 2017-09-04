@@ -1,0 +1,19 @@
+.viewport {
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  box-sizing: border-box;
+  padding-bottom: 1.3rem;
+}
+
+.bottom-menu {
+  position: fixed;
+  bottom: 0;
+  height: 1.3rem;
+}
+
+.fullscreen .bottom-menu {
+  display: none;
+}

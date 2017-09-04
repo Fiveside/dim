@@ -1,15 +1,15 @@
 /* eslint flowtype-errors/show-errors: 0 */
 import React from 'react';
-import { Switch, Route } from 'react-router';
+import { Switch, Route, Redirect } from 'react-router';
 import App from './containers/App';
-import HomePage from './containers/HomePage';
-import CounterPage from './containers/CounterPage';
+import Viewer from './containers/Viewer';
 
 export default () => (
   <App>
     <Switch>
-      <Route path="/counter" component={CounterPage} />
-      <Route path="/" component={HomePage} />
+      {/* <Redirect to="/viewer" path="/" /> */}
+      <Route exact path="/" render={() => <Redirect to="/viewer" />} />
+      <Route path="/viewer" component={Viewer} />
     </Switch>
   </App>
 );
