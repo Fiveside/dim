@@ -1,7 +1,8 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { Viewer } from './components/viewer';
 
 ReactDOM.render(
-  <div>hell world from react!</div>,
+  <Viewer />,
   document.getElementById('root')
 );
