@@ -1,6 +1,8 @@
 import * as React from 'react';
-import { MemoryRouter, Route, Link } from 'react-router-dom';
+import { MemoryRouter, Route, Link, RouteComponentProps } from 'react-router-dom';
 import { Viewer } from "./components/viewer";
+import { Navigation, INavigationEntry } from "./components/navigation";
+
 
 function Index() {
   return <h2>Home!</h2>;
@@ -14,54 +16,78 @@ function Users() {
   return <h2>IDK lol</h2>;
 }
 
-export const Routes = {
+interface IFizzbuzzparams {
+  id: string
+}
+
+function Fizzbuzz(props: RouteComponentProps<IFizzbuzzparams>) {
+  return <h2>Got a thing: {props.match.params.id}</h2>
+}
+
+interface IRouteConf {
+  route: () => string,
+  reverse: (x: any) => string,
+  component: React.ComponentClass<any, any> | React.FunctionComponent<any>,
+  exact: boolean
+}
+
+export const Routes: { [key: string]: IRouteConf } = {
   index: {
     route: () => '/',
+    reverse: () => '/',
     component: Viewer,
     exact: true,
   },
   about: {
     route: () => '/about',
+    reverse: () => '/about',
     component: About,
     exact: false,
   },
   users: {
     route: () => '/users',
+    reverse: () => '/users',
     component: Users,
+    exact: false,
+  },
+  fizzbuzz: {
+    route: () => '/fizzbuzz/:id',
+    reverse: (x: Number) => `/fizzbuzz/${x}`,
+    component: Fizzbuzz,
     exact: false,
   }
 }
 
-export function AppRouter() {
-  return (
-    <MemoryRouter>
-      <div>
-        <nav>
-          <ul>
-            <li>
-              <Link to={Routes.index.route()}>Home</Link>
-            </li>
-            <li>
-              <Link to={Routes.about.route()}>About</Link>
-            </li>
-            <li>
-              <Link to={Routes.users.route()}>Users</Link>
-            </li>
-          </ul>
-        </nav>
+export class AppRouter extends React.PureComponent {
 
-        {Object.entries(Routes).map(([name, e]) => (
-          <Route
-            path={e.route()}
-            exact={e.exact}
-            component={e.component}
-            key={name}
-          />
-        ))}
-        {/* <Route path="/" exact componet={Index} />
-        <Route path="/about" component={About} />
-        <Route path="/users" component={Users} /> */}
-      </div>
-    </MemoryRouter>
-  )
+  private navEntries() {
+    return Object.entries(Routes).map(([name, conf]) => {
+      return {
+        icon: 'home',
+        text: name,
+        to: conf.reverse(5),
+      } as INavigationEntry
+    })
+  }
+
+  private routeEntries() {
+    return Object.entries(Routes).map(([name, conf]) => {
+      return <Route
+        path={conf.route()}
+        exact={conf.exact}
+        component={conf.component}
+        key={name}
+      />
+    })
+  }
+
+  public render() {
+    return (
+      <MemoryRouter>
+        <Navigation entries={this.navEntries()} />
+        {this.routeEntries()}
+      </MemoryRouter>
+    )
+  }
 }
+
