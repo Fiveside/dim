@@ -22,7 +22,7 @@
     "@types/lodash": "^4.14.38",
     "@types/node": "^6.0.46",
     "del": "^2.2.1",
-    "electron": "^1.4.5",
+    "electron": "^9.1.0",
     "electron-packager": "^8.2.0",
     "electron-prebuilt": "^1.4.5",
     "eslint": "^3.4.0",
